@@ -12,7 +12,7 @@ nxlocal = 2
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
-nsteps = 1
+nsteps = 10
 
 #create cartesian topology
 # number of dims each direction
@@ -45,8 +45,10 @@ print(data)
 adios = adios2.ADIOS(comm)
 
 # ADIOS IO
-bpIO = adios.DeclareIO("randomBPfile")
-bpIO.SetEngine('bp5')
+datamanIO = adios.DeclareIO("randomBPfile")
+datamanIO.SetEngine('Dataman')
+datamanIO.SetParameters({"IPAddress":"127.0.0.1" , "Port":"12306", "Timeout":"5", "TransportMode":"reliable" })
+
 
 
 # fileID = bpIO.AddTransport('File', {'Library': 'fstream'})
@@ -59,33 +61,18 @@ bpIO.SetEngine('bp5')
 #ioVAR = bpIO.DefineVariable(
 #    "bpMatrixglobal",mymatrix, (Nx,Ny), (rank2d[0]*nxlocal,rank2d[1]*nxlocal), (nxlocal,nxlocal))
 
-ioglobalVar = bpIO.DefineVariable("bpMatrixglobal",data,shape,start,count,adios2.ConstantDims)
+ioglobalVar = datamanIO.DefineVariable("matrix",data,shape,start,count,adios2.ConstantDims)
 
 # ADIOS Engine
-bpFileWriter = bpIO.Open("Matrix.bp", adios2.Mode.Write)
+datamanWriter = datamanIO.Open("Fluesterpost_matrix", adios2.Mode.Write)
+for i in range(0,nsteps):
+    data = data + 1
+    print("step: ", i, data)
+    datamanWriter.BeginStep()
+    datamanWriter.Put(ioglobalVar, data)
+    datamanWriter.EndStep()
 
-bpFileWriter.Put(ioglobalVar, data, adios2.Mode.Sync)
-
-bpFileWriter.Close()
-
-
-# if rank == 0:
-#     bpIOin = adios.DeclareIO("IOReader")
-#     bpFileReader = bpIOin.Open("Matrix.bp", adios2.Mode.Read)
-
-#     data_in = bpIOin.InquireVariable("bpMatrixglobal")
-#     print(data_in.Name())
-    
-#     #shape = data_in.Shape()
-#     #print(shape)
-#         # matrixdata = np.zeros(np.prod(shape), int)
-#         # print("Matrix dimension: ", str(np.prod(shape)))
-        
-#         # bpFileReader.Get(data_in,matrixdata, adios2.Mode.Sync)
-
-#     #bpFileReader.Close()
-#     #print(matrixdata)
-
+datamanWriter.Close()
 
 
 
