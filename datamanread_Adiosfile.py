@@ -1,6 +1,7 @@
 #modified the example found on https://adios2.readthedocs.io/en/latest/api_high/api_high.html#python-high-level-api 
 import numpy as np
 import adios2
+import socket
 
 Nx = 2
 Ny = 2
@@ -8,10 +9,15 @@ adios = adios2.ADIOS()
 
 datamanIO = adios.DeclareIO("Fluesterpost")
 datamanIO.SetEngine("Dataman")
+print("datamanIO engine set")
 
+#datamanIO.SetParameters({"IPAddress":"10.43.78.89" , "Port":"12306", "Timeout":"5", "TransportMode":"reliable" })
 datamanIO.SetParameters({"IPAddress":"127.0.0.1" , "Port":"12306", "Timeout":"5", "TransportMode":"reliable" })
-
+#datamanIO.SetParameters({"IPAddress":"10.43.78.28" , "Port":"12306", "Timeout":"5", "TransportMode":"reliable" })
+print("datamanIO parameters set")
+#datamanIO.SetParameters({"IPAddress":socket.gethostbyaddr("cpu-q-526.data.cluster")[2][0]  , "Port":"12306", "Timeout":"5", "TransportMode":"reliable" })
 datamanReader = datamanIO.Open("Fluesterpost_matrix",adios2.Mode.Read)
+print("datamanReader open:")
 #preallocate data variable 
 receivedMatrix = np.zeros(Nx*Ny, int)
 while True:

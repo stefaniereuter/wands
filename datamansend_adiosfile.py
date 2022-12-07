@@ -2,6 +2,7 @@ import sys
 from mpi4py import MPI
 import numpy as np
 import adios2
+import socket
 #TODO FIX MPI PARLLEL DATA INCORRECT
 # User data
 
@@ -42,13 +43,18 @@ for i in range(0,Nx):
 
 print("------------------")
 print(data)
+
 adios = adios2.ADIOS(comm)
 
 # ADIOS IO
 datamanIO = adios.DeclareIO("randomBPfile")
-datamanIO.SetEngine('Dataman')
-datamanIO.SetParameters({"IPAddress":"127.0.0.1" , "Port":"12306", "Timeout":"5", "TransportMode":"reliable" })
+datamanIO.SetEngine('BP5')
+# datamanIO.SetEngine('Dataman')
 
+# # print(socket.gethostbyaddr("cpu-q-526.data.cluster")[2][0] )
+# datamanIO.SetParameters({"IPAddress":"0.0.0.0" , "Port":"12306", "Timeout":"5", "TransportMode":"reliable" })
+# #datamanIO.SetParameters({"IPAddress": socket.gethostbyaddr("cpu-q-526.data.cluster")[2][0] , "Port":"12306", "Timeout":"5", "TransportMode":"reliable" })
+# # datamanIO.SetParameters({"IPAddress": "127.0.0.1" , "Port":"12306", "Timeout":"5", "TransportMode":"fast" })
 
 
 # fileID = bpIO.AddTransport('File', {'Library': 'fstream'})
