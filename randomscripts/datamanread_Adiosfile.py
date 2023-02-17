@@ -1,4 +1,4 @@
-#modified the example found on https://adios2.readthedocs.io/en/latest/api_high/api_high.html#python-high-level-api 
+# modified the example found on https://adios2.readthedocs.io/en/latest/api_high/api_high.html#python-high-level-api
 import numpy as np
 import adios2
 import socket
@@ -11,22 +11,29 @@ datamanIO = adios.DeclareIO("Fluesterpost")
 datamanIO.SetEngine("Dataman")
 print("datamanIO engine set")
 
-#datamanIO.SetParameters({"IPAddress":"10.43.78.89" , "Port":"12306", "Timeout":"5", "TransportMode":"reliable" })
-datamanIO.SetParameters({"IPAddress":"127.0.0.1" , "Port":"12306", "Timeout":"5", "TransportMode":"reliable" })
-#datamanIO.SetParameters({"IPAddress":"10.43.78.28" , "Port":"12306", "Timeout":"5", "TransportMode":"reliable" })
+# datamanIO.SetParameters({"IPAddress":"10.43.78.89" , "Port":"12306", "Timeout":"5", "TransportMode":"reliable" })
+datamanIO.SetParameters(
+    {
+        "IPAddress": "127.0.0.1",
+        "Port": "12306",
+        "Timeout": "5",
+        "TransportMode": "reliable",
+    }
+)
+# datamanIO.SetParameters({"IPAddress":"10.43.78.28" , "Port":"12306", "Timeout":"5", "TransportMode":"reliable" })
 print("datamanIO parameters set")
-#datamanIO.SetParameters({"IPAddress":socket.gethostbyaddr("cpu-q-526.data.cluster")[2][0]  , "Port":"12306", "Timeout":"5", "TransportMode":"reliable" })
-datamanReader = datamanIO.Open("Fluesterpost_matrix",adios2.Mode.Read)
+# datamanIO.SetParameters({"IPAddress":socket.gethostbyaddr("cpu-q-526.data.cluster")[2][0]  , "Port":"12306", "Timeout":"5", "TransportMode":"reliable" })
+datamanReader = datamanIO.Open("Fluesterpost_matrix", adios2.Mode.Read)
 print("datamanReader open:")
-#preallocate data variable 
-receivedMatrix = np.zeros(Nx*Ny, int)
+# preallocate data variable
+receivedMatrix = np.zeros(Nx * Ny, int)
 while True:
     stepStatus = datamanReader.BeginStep()
     if stepStatus == adios2.StepStatus.OK:
         data = datamanIO.InquireVariable("matrix")
-        #todo inquire size via metadata
-        datamanReader.Get(data,receivedMatrix, adios2.Mode.Sync)
-        currentStep =datamanReader.CurrentStep()
+        # todo inquire size via metadata
+        datamanReader.Get(data, receivedMatrix, adios2.Mode.Sync)
+        currentStep = datamanReader.CurrentStep()
         datamanReader.EndStep()
         print("Step", currentStep, receivedMatrix)
     elif stepStatus == adios2.StepStatus.EndOfStream:
