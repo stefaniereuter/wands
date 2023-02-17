@@ -224,26 +224,12 @@ class ADIOSServer:
             If axis is not found when indexed against the HDF5 source.
         """
         data_writer = self._io.Open(self._link, adios2.Mode.Write)
-<<<<<<< HEAD
 
         with h5py.File(self._source, "r") as h5file:
-            data = h5file[axis]  # This can raise KeyError.
-            # Would be better to pass the error to the ADIOSData
-            # instance to raise.
+            data = h5file[axis]
             sendbuffer = self._io.DefineVariable(
                 self._axis, data, shape := data.shape, 0, shape, adios2.ConstantDims
             )
-=======
-        
-        with h5py.File(self._source, 'r') as h5file:
-            data = h5file[axis]
-            sendbuffer = self._io.DefineVariable(self._axis,
-                                                 data,
-                                                 shape:=data.shape,
-                                                 0,
-                                                 shape,
-                                                 adios2.ConstantDims)
->>>>>>> d001e506b293754c7da8c07b855f27a6411a4b7e
 
             data_writer.BeginStep()
             data_writer.Put(sendbuffer, h5file[axis])
