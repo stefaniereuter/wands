@@ -18,6 +18,8 @@ class ADIOSData:
     _link = None
     _engine = None
 
+    # __slots__ = ["_adios", "_parameters", "_io", "_link", "_engine"]
+
     def __init__(self, link: str, engine="Dataman", **parameters):
         """
         Parameters
@@ -34,7 +36,7 @@ class ADIOSData:
         self._link = link
         self._engine = engine
 
-        self._io = adios.DeclareIO(self._link)
+        self._io = self._adios.DeclareIO(self._link)
         self._io.SetEngine(self._engine)
         if parameters:
             self._parameters = parameters

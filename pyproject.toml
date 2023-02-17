@@ -1,0 +1,31 @@
+[build-system]
+requires = [
+    "setuptools >= 64.0.0",
+    "setuptools-scm"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wands"
+authors = [
+    {name = "Stefanie Reuter", email = "sr2003@cam.ac.uk"},
+    {name = "Toby James", email = "toby.james@ukaea.uk"},
+]
+description = "Wide Area Network Data Stream"
+readme = "README.md"
+requires-python = ">=3.8"
+keywords = []
+license = {file = "LICENCE"}
+version = "0.0.1"
+dependencies = [
+    "numpy",
+    "mpi4py >= 3.1.4",
+    #"adios2 >= 2.8.3",
+    "pytest >= 7.2.1",
+    "h5py"
+]
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
