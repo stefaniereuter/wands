@@ -20,8 +20,11 @@ version = "0.0.1"
 dependencies = [
     "numpy",
     "mpi4py >= 3.1.4",
-    #"adios2 >= 2.8.3",
+    # "adios2 >= 2.8.3", # Disabled because conda-installed adios2
+                         # does not provide dist-info, making it impossible
+                         # for pip to find the package
     "pytest >= 7.2.1",
+    "pytest-cov",
     "pylint",
     "h5py",
 ]

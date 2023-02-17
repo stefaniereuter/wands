@@ -1,11 +1,35 @@
-# adiosnetwork
+# Wide Area Network Data Stream (wands)
 UKAEA work with adios to transport data between fusion reactor and CSD3. This is a prototype and very much a work in progress. 
 
 ## Setup environment
 The easiest way to run the code is to setup a conda environment and install adios2 as a conda package:
-> `conda create -n <name> -c conda-forge adios2 numpy mpi4py h5py`
 
-Once the environment is created and all the packages are installed activate this environment. This setup is necessary in every machine the code is supposed to run. 
+```
+conda create -n <name> -c conda-forge adios2 numpy mpi4py h5py
+```
+
+Once the environment is created and all the packages are installed activate this environment:
+
+```
+conda activate <name>
+```
+
+Then use pip to install this package into the environment:
+
+```
+pip install -e .
+```
+
+This setup is necessary in every machine the code is supposed to run.
+
+## Testing the installation
+
+To test the installation, run the test suite:
+
+```
+pytest
+```
+
 
 ## Running the prototype
 CSD3 specific instructions to run the code:
