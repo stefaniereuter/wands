@@ -22,7 +22,8 @@ dependencies = [
     "mpi4py >= 3.1.4",
     #"adios2 >= 2.8.3",
     "pytest >= 7.2.1",
-    "h5py"
+    "pylint",
+    "h5py",
 ]
 
 [tool.pytest.ini_options]

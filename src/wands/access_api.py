@@ -1,8 +1,8 @@
+from typing import Iterable
+
 import numpy as np
 import adios2
 import h5py
-
-from typing import Iterable
 
 
 class ADIOSData:
