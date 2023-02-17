@@ -229,9 +229,7 @@ class ADIOSServer:
         data_writer = self._io.Open(self._link, adios2.Mode.Write)
         
         with h5py.File(self._source, 'r') as h5file:
-            data = h5file[axis]  # This can raise KeyError.
-            # Would be better to pass the error to the ADIOSData
-            # instance to raise.
+            data = h5file[axis]
             sendbuffer = self._io.DefineVariable(self._axis,
                                                  data,
                                                  shape:=data.shape,
