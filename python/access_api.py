@@ -4,22 +4,21 @@ import h5py
 
 from typing import Iterable
 
+
 class ADIOSData:
     """
     Access data through ADIOS.
 
     Class to allow connection to ADIOSServer classes via a specified engine.
     """
+
     _adios = None
     _parameters = None
     _io = None
     _link = None
     _engine = None
 
-    def __init__(self,
-                 link: str,
-                 engine="Dataman",
-                 **parameters):
+    def __init__(self, link: str, engine="Dataman", **parameters):
         """
         Parameters
         ----------
@@ -32,13 +31,16 @@ class ADIOSData:
 
         """
         self._adios = adios2.ADIOS()
-        self._io = adios.DeclareIO(self._link:=link)
-        self._io.SetEngine(self._engine:=engine)
-        if parameters:
-            self.set_parameters(self._parameters:=parameters)
+        self._link = link
+        self._engine = engine
 
-    def __getitem__(self,
-                    axis: str)->Iterable:
+        self._io = adios.DeclareIO(self._link)
+        self._io.SetEngine(self._engine)
+        if parameters:
+            self._parameters = parameters
+            self.set_parameters(self._parameters)
+
+    def __getitem__(self, axis: str) -> Iterable:
         """
         Request a given HDF5 axis from the specified link.
 
@@ -68,12 +70,14 @@ class ADIOSData:
 
         axis_as_bytes = bytearray(axis, "utf-8")
 
-        sendbuffer = self._io.DefineVariable("axis",
-                                             axis_as_bytes,
-                                             shape:=len(axis_as_bytes),
-                                             0,
-                                             shape,
-                                             adios2.ConstantDims)
+        sendbuffer = self._io.DefineVariable(
+            "axis",
+            axis_as_bytes,
+            shape := len(axis_as_bytes),
+            0,
+            shape,
+            adios2.ConstantDims,
+        )
         axis_writer.BeginStep()
         axis_writer.Put(sendbuffer, data)
         axis_writer.EndStep()
@@ -87,13 +91,13 @@ class ADIOSData:
         axis_check_reader.Get(axis_check, received_axis, adios2.Mode.Sync)
         axis_check_reader.EndStep()
         axis_check_reader.Close()
-        
+
         if not received_axis[0]:
             raise KeyError("Axis not found in source file")
 
         # Now get the data
         data_reader = self._io.Open(self._link, adios2.Mode.Read)
-        
+
         data_in = self._io.InquireVariable(axis)
         receveived_data = np.zeros(data_in.Shape())
 
@@ -108,8 +112,7 @@ class ADIOSData:
 
         return received_data
 
-    def set_parameters(self,
-                       **parameters)->None:
+    def set_parameters(self, **parameters) -> None:
         """
         Set the parameters for the engine.
 
@@ -129,6 +132,7 @@ class ADIOSServer:
     """
     Send data through ADIOS.
     """
+
     _adios = None
     _io = None
     _parameters = None
@@ -138,11 +142,7 @@ class ADIOSServer:
     _engine = None
     _axis_received = False
 
-    def __init__(self,
-                 link: str,
-                 source: str,
-                 engine="Dataman",
-                 **parameters):
+    def __init__(self, link: str, source: str, engine="Dataman", **parameters):
         """
         Parameters
         ----------
@@ -156,17 +156,20 @@ class ADIOSServer:
             Parameters to pass to the engine for initialisation.
         """
         self._adios = adios2.ADIOS()
-        self._io = adios.DeclareIO(self._link:=link)
-        self._io.SetEngine(self._engine:=engine)
+        self._link = link
+        self._engine = engine
+        self._io = adios.DeclareIO(self._link)
+        self._io.SetEngine(self._engine)
         if parameters:
-            self.set_parameters(self._parameters:=parameters)
+            self._parameters = parameters
+            self.set_parameters(self._parameters)
 
         self._source = source
 
-    def _receive_axis(self)->None:
+    def _receive_axis(self) -> None:
         """
         Receive a name of an axis to send.
-        
+
         Returns
         -------
         None
@@ -180,10 +183,9 @@ class ADIOSServer:
         axis_reader.EndStep()
         axis_reader.Close()
 
-
         try:
             self._axis = bytes(list(received_axis)).decode("utf-8")
-            with h5py.File(self._source, 'r') as hf5ile:
+            with h5py.File(self._source, "r") as hf5ile:
                 _ = h5file[self._axis]
 
             self._axis_received = True
@@ -194,21 +196,16 @@ class ADIOSServer:
 
         axis_check_writer = self._io.Open("axis_check" + self._link, adios2.Mode.Write)
 
-        sendbuffer = self._io.DefineVariable("axis_check",
-                                             (int(self._axis_received)),
-                                             (1,),
-                                             0,
-                                             (1,),
-                                             adios2.ConstantDims)
+        sendbuffer = self._io.DefineVariable(
+            "axis_check", (int(self._axis_received)), (1,), 0, (1,), adios2.ConstantDims
+        )
 
         axis_check_writer.BeginStep()
         axis_check_writer.Put(sendbuffer, int(self._axis_received))
         axis_check_writer.EndStep()
         axis_check_writer.Close()
 
-    def _send_data(self,
-                   steps: int =1
-                   )->None:
+    def _send_data(self, steps: int = 1) -> None:
         """
         Send requested data
 
@@ -227,17 +224,14 @@ class ADIOSServer:
             If axis is not found when indexed against the HDF5 source.
         """
         data_writer = self._io.Open(self._link, adios2.Mode.Write)
-        
-        with h5py.File(self._source, 'r') as h5file:
+
+        with h5py.File(self._source, "r") as h5file:
             data = h5file[axis]  # This can raise KeyError.
             # Would be better to pass the error to the ADIOSData
             # instance to raise.
-            sendbuffer = self._io.DefineVariable(self._axis,
-                                                 data,
-                                                 shape:=data.shape,
-                                                 0,
-                                                 shape,
-                                                 adios2.ConstantDims)
+            sendbuffer = self._io.DefineVariable(
+                self._axis, data, shape := data.shape, 0, shape, adios2.ConstantDims
+            )
 
             data_writer.BeginStep()
             data_writer.Put(sendbuffer, h5file[axis])
@@ -248,7 +242,7 @@ class ADIOSServer:
         self._axis = None
         self._axis_received = False
 
-    def chill(self)->None:
+    def chill(self) -> None:
         """
         Chill out and wait for someone to ask for data.
 
