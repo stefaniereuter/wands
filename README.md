@@ -3,7 +3,7 @@ UKAEA work with adios to transport data between fusion reactor and CSD3. This is
 
 ## Setup environment
 The easiest way to run the code is to setup a conda environment and install adios2 as a conda package:
-> `conda create -n <name> -c conda-forge adios2 numpy mpi4py`
+> `conda create -n <name> -c conda-forge adios2 numpy mpi4py h5py`
 
 Once the environment is created and all the packages are installed activate this environment. This setup is necessary in every machine the code is supposed to run. 
 
