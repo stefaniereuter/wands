@@ -63,7 +63,6 @@ class ADIOSData:
         KeyError
             If axis is not found when indexed against the HDF5 source.
         """
-        # TODO implement raise KeyError
         # Send name of axis across
         axis_writer = self._io.Open("axis" + self._link, adios2.Mode.Write)
 
@@ -79,6 +78,18 @@ class ADIOSData:
         axis_writer.Put(sendbuffer, data)
         axis_writer.EndStep()
         axis_writer.Close()
+
+        axis_check_reader = self._io.Open("axis_check" + self._link, adios2.Mode.Read)
+        axis_check = self._io.InquireVariable("axis_check")
+
+        axis_check_reader.BeginStep()
+        received_axis = np.zeros(1)
+        axis_check_reader.Get(axis_check, received_axis, adios2.Mode.Sync)
+        axis_check_reader.EndStep()
+        axis_check_reader.Close()
+        
+        if not received_axis[0]:
+            raise KeyError("Axis not found in source file")
 
         # Now get the data
         data_reader = self._io.Open(self._link, adios2.Mode.Read)
@@ -169,8 +180,31 @@ class ADIOSServer:
         axis_reader.EndStep()
         axis_reader.Close()
 
-        self._axis = bytes(list(received_axis)).decode("utf-8")
-        self._axis_received = True
+
+        try:
+            self._axis = bytes(list(received_axis)).decode("utf-8")
+            with h5py.File(self._source, 'r') as hf5ile:
+                _ = h5file[self._axis]
+
+            self._axis_received = True
+
+        except KeyError:
+            self._axis_received = False
+            self._axis = None
+
+        axis_check_writer = self._io.Open("axis_check" + self._link, adios2.Mode.Write)
+
+        sendbuffer = self._io.DefineVariable("axis_check",
+                                             (int(self._axis_received)),
+                                             (1,),
+                                             0,
+                                             (1,),
+                                             adios2.ConstantDims)
+
+        axis_check_writer.BeginStep()
+        axis_check_writer.Put(sendbuffer, int(self._axis_received))
+        axis_check_writer.EndStep()
+        axis_check_writer.Close()
 
     def _send_data(self,
                    steps: int =1
