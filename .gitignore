@@ -4,3 +4,6 @@ data/
 adiosnetworkvenv
 __pycache__
 *.egg-info
+README_files/
+README.html
+.coverage
