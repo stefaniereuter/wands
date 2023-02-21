@@ -13,3 +13,4 @@ def test_adiosdata_invalid_link(link):
     """Check error behaviour with wrong link argument types"""
     with pytest.raises(TypeError):
         _ = ADIOSData(link)
+
