@@ -4,6 +4,7 @@
 #for now numpy import 
 import numpy as np
 import adios2
+from .datahub.hdf_util import RawData
 
 
 
@@ -77,11 +78,37 @@ class AdiosWands:
 
     def send(self, eng_name:str, var_name:str, data):
         """
-        Send Data in one step
+        Send data via adios. Currently supported ndarray or RawData
+
+        Parameters
+        -----------
+        eng_name
+            unique String to name the Writing Engine
+
+        var_name
+            unique name for the variable to be send. This will be queried by the receiver
+
+        data
+            Data to be sent
+
+        Returns
+        -------
+        None
+
+        """
+        if isinstance(data,np.ndarray):
+            self.send_array(eng_name,var_name,data)
+        if isinstance(data,RawData):
+            self.send_RawData(eng_name,var_name,data)
+
+
+    def send_array(self, eng_name:str, var_name:str, data:np.ndarray):
+        """
+        Send Array Data in one step
 
         Parameters
         ----------
-        io_name
+        eng_name
             unique String to name the Writing Engine
 
         var_name
@@ -117,9 +144,52 @@ class AdiosWands:
         
         writer.Close()
 
-    def send_steps(self, eng_name:str, var_name:str, data, nsteps:int):
+
+    # def send_rawdata(self, eng_name:str, var_name:str, data:RawData):
+    #     """
+    #     Send Array Data in one step
+
+    #     Parameters
+    #     ----------
+    #     eng_name
+    #         unique String to name the Writing Engine
+
+    #     var_name
+    #         unique name for the variable to be send. This will be queried by the receiver
+
+    #     data
+    #         Data to be sent
+
+    #     Returns
+    #     -------
+    #     None
+    #     """
+    #     writer = self._io.Open(eng_name, adios2.Mode.Write )
+    #     # name – unique variable identifier
+    #     # shape – global dimension
+    #     # start – local offset
+    #     # count – local dimension
+    #     # constantDims – true: shape, start, count won’t change, false: shape, start, count will change after definition
+    #     shape = data.shape
+    #     print(f"shape in send: {shape!s}")
+    #     count = shape
+    #     print(f"count in send {count!s}")
+    #     start = (0,) * len(shape)
+    #     print(f"start in send {start!s}")
+        
+    #     sendbuffer = self._io.DefineVariable(var_name, data, shape, start, count, adios2.ConstantDims )
+    #     if sendbuffer:
+    #         writer.BeginStep()
+    #         writer.Put(sendbuffer, data, adios2.Mode.Deferred)
+    #         writer.EndStep()
+    #     else:
+    #         raise ValueError("Variable definition failed")
+        
+    #     writer.Close()
+
+    def send_steps(self, eng_name:str, var_name:str, data, chunks):
         """
-        Send Data in one step
+        Send Data in multiple steps
 
         Parameters
         ----------
@@ -132,13 +202,22 @@ class AdiosWands:
         data
             Data to be sent
 
-        nsteps
-            number of steps the data should be sent in
+        chunks
+            number of elements per chunk to be send: at the moment it needs the explicit form of a tuple to account for all elements 
+            for example ((2,2,1),(2,2,2)) for a matrix in the shape of shape = (5,6) -> (2,2,1) is for the first dimension (5 elements) and (2,2,2) accounts for the second dimension (6 elements) 
+            therefore the data will be send in blocks of 6 blocks of (2x2) elements and 3 blocks of (1x2) elements  
+            At the moment the user is responsible for making sure that all data is accounted for in these chunks (This will be changed later on)
 
         Returns
         -------
         None
         """
+        
+        # Sort chunks:
+        # ATM it  needs the correct form but should be handles similar to normalize_chunks in dask.array.core
+        raise KeyError(f"sending in steps not yet implemented")
+    
+
         writer = self._io.Open(eng_name, adios2.Mode.Write )
         # name – unique variable identifier
         # shape – global dimension
@@ -244,6 +323,8 @@ class AdiosWands:
             return self._parameters["TransportMode"]
         else:
             raise ValueError(" Transportmode not specified yet")
+        
+    
 
 
 # class AdiosSend:
