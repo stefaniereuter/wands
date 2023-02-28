@@ -3,8 +3,10 @@
 """
 #for now numpy import 
 import numpy as np
+import warnings
 import adios2
 from .datahub.hdf_util import RawData
+
 
 
 
@@ -99,7 +101,7 @@ class AdiosWands:
         if isinstance(data,np.ndarray):
             self.send_array(eng_name,var_name,data)
         if isinstance(data,RawData):
-            self.send_RawData(eng_name,var_name,data)
+            self.send_rawdata(eng_name,var_name,data)
 
 
     def send_array(self, eng_name:str, var_name:str, data:np.ndarray):
@@ -145,47 +147,54 @@ class AdiosWands:
         writer.Close()
 
 
-    # def send_rawdata(self, eng_name:str, var_name:str, data:RawData):
-    #     """
-    #     Send Array Data in one step
+    def send_rawdata(self, eng_name:str, var_name:str, data:RawData):
+        """
+        Send Array Data in one step
 
-    #     Parameters
-    #     ----------
-    #     eng_name
-    #         unique String to name the Writing Engine
+        Parameters
+        ----------
+        eng_name
+            unique String to name the Writing Engine
 
-    #     var_name
-    #         unique name for the variable to be send. This will be queried by the receiver
+        var_name
+            unique name for the variable to be send. This will be queried by the receiver
 
-    #     data
-    #         Data to be sent
+        data
+            Data to be sent
 
-    #     Returns
-    #     -------
-    #     None
-    #     """
-    #     writer = self._io.Open(eng_name, adios2.Mode.Write )
-    #     # name – unique variable identifier
-    #     # shape – global dimension
-    #     # start – local offset
-    #     # count – local dimension
-    #     # constantDims – true: shape, start, count won’t change, false: shape, start, count will change after definition
-    #     shape = data.shape
-    #     print(f"shape in send: {shape!s}")
-    #     count = shape
-    #     print(f"count in send {count!s}")
-    #     start = (0,) * len(shape)
-    #     print(f"start in send {start!s}")
+        Returns
+        -------
+        None
+        """
+
+        # At the moment there seems to be a potentioal bug if trying to send one dimensional arrays. 
+        # See https://github.com/ornladios/ADIOS2/issues/3503 
+        # For that reason we add time, data, errors to one big array and send in one. 
+        # It would be great to send three individual arrays in one step it should give a performance benefit.
+        sendmatrix = []
+        #send time if not None
+        time = data.get_time()
+        if time is not None:
+            sendmatrix.append(time)
+        else: 
+            warnings.warn(f"could not retrieve time array for {var_name!s}, will not be sent")
+
         
-    #     sendbuffer = self._io.DefineVariable(var_name, data, shape, start, count, adios2.ConstantDims )
-    #     if sendbuffer:
-    #         writer.BeginStep()
-    #         writer.Put(sendbuffer, data, adios2.Mode.Deferred)
-    #         writer.EndStep()
-    #     else:
-    #         raise ValueError("Variable definition failed")
-        
-    #     writer.Close()
+        #send data if not None
+        data_array = data.get_data()
+        if data is not None:
+            sendmatrix.append(data_array)
+        else:
+            warnings.warn(f"could not retrieve data array for {var_name!s}, will not be sent")
+
+        #send error if not None (see if it's possible to also check if all entries are zero and avoid sending the data)
+        error = data.get_errors()
+        if error is not None:
+            sendmatrix.append(error)
+        else:
+            warnings.warn(f"could not retrieve error array for {var_name!s}, will not be sent")
+
+        self.send_array(eng_name,var_name,np.array(sendmatrix))
 
     def send_steps(self, eng_name:str, var_name:str, data, chunks):
         """
@@ -269,9 +278,9 @@ class AdiosWands:
                     bufshape = recvar.Shape()
                     # allocate buffer for now numpy
                     data = np.ones(bufshape)
-                    print(f"data before Get: \n{data!s}")
+                    #print(f"data before Get: \n{data!s}")
                     reader.Get(recvar,data,adios2.Mode.Deferred)
-                    print(f"data right after get This might be not right as data might not have been sent yet \n: {data!s}")
+                    #print(f"data right after get This might be not right as data might not have been sent yet \n: {data!s}")
                     #currentStep = reader.CurrentStep()
                 else:
                     raise ValueError(f"InquireVariable failed {variable_name!s}")
@@ -280,9 +289,9 @@ class AdiosWands:
             else: 
                 raise StopIteration(f"next step failed to initiate {stepStatus!s}")
             reader.EndStep()
-            print(f"After end step \n{data!s}")
+            #print(f"After end step \n{data!s}")
         reader.Close()
-        print(f"after close \n {data!s}")
+        #print(f"after close \n {data!s}")
         return data
         # reader = self._io.Open(eng_name, adios2.Mode.Read)
         # recvar = self._io.InquireVariable(variable_name)
