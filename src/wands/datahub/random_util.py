@@ -32,4 +32,8 @@ class RandomData:
     def shape(self):
         return self._data.shape
 
+    def get_numpy_array(self):
+        return self._data
+
+
     
