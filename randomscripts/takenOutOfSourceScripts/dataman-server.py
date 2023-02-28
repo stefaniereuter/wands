@@ -12,17 +12,17 @@ Nx = 4
 Ny = 4
 
 nsteps = Ny
-# count = [Nx, Ny]
-# start = [0, 0]
-# shape = [Nx, Ny]
-# data = np.random.rand(Nx, Ny)
+count = [Nx, Ny]
+start = [0, 0]
+shape = [Nx, Ny]
+data = np.random.rand(Nx, Ny)
 #
 
 axis = "amc"
-h5file = h5py.File("test.h5", "r")
-data = h5file[axis]
-shape = data.shape
-count = shape
+# h5file = h5py.File("test.h5", "r")
+# data = h5file[axis]
+# shape = data.shape
+# count = shape
 # use io.BYtes to stream ?
 
 

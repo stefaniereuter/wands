@@ -121,3 +121,7 @@ def test_send():
     r.join()
     s.join()
     assert np.array_equal(data, data_r)
+
+
+
+## TODO test two declared IOs

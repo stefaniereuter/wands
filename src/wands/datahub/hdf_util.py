@@ -86,7 +86,7 @@ class HDF5:
         if not self._file:
             raise KeyError(f"Opening of {filename!s} failed")
         
-    def getaxis(self, axis:str):
+    def getaxis(self, axis:str) -> RawData:
         """
         Request a set of raw data (time, error ,data array)
         
@@ -148,9 +148,38 @@ class HDF5:
  
         return raw_data
     
+
+    def get_multiple_axis(self, req_list) -> list[RawData]:
+        """
+        Request a set of raw data (time, error ,data array)
+        
+        Parameters
+        ----------
+        axis : str
+            Name to request from the known HDF5 file. Indexed against
+            the HDF5 file object by the connected ADIOSServer instance.
+
+            Collected like: file_object[axis]
+
+            Therefore axis values may include / to specify sub elements
+            in the HDF5 heirarchy. 
+            
+            We query for the different entities like errors, data, and times
+
+        Return
+        ----------
+        An array of RawData objects
+        """
+        raw_data_list = []
+        for k in req_list:
+            raw_data_list.append(self.getaxis(k))
+
+        return raw_data_list
+    
 #Needed because of a potential bug in adios. data can't be sent in a 1d array and afterwards needs to be converted back
 # this is very buggy as I assume that if it's a 1xelements array it's [time] 2xelements it's [time,data] 3xelements it's [time,data,error]
 # this is only a temporary fix as ideally the data should be sent seperately
+# TODO send with attribute getting the correct order and  inquire attribute
 def convert_nd_to_rawdata(recarray, raw_data_object:RawData):
     shape = recarray.shape
     if shape[0] == 3:   
@@ -164,3 +193,12 @@ def convert_nd_to_rawdata(recarray, raw_data_object:RawData):
         raw_data_object.set_time(recarray[0,:])
     else:
         raise ValueError("unsupported shape of data array")
+    
+def get_req_data(filename, req_list) -> list[RawData]:
+    """
+    util function to avoid using using HDF5 module in AdiosWands directly
+    """
+    h5obj = HDF5(filename)
+    rda = h5obj.get_multiple_axis(req_list)
+
+    return rda

@@ -53,7 +53,7 @@ datamanReader = datamanIO.Open("Fluesterpost", adios2.Mode.Read)
 while True:
     stepStatus = datamanReader.BeginStep()
     if stepStatus == adios2.StepStatus.OK:
-        data1 = datamanIO.InquireVariable("matrix1")
+        data1 = datamanIO.InquireVariable("amc")
         if data1:
             datamanReader.Get(data1, receivedMatrix, adios2.Mode.Sync)
             currentStep = datamanReader.CurrentStep()
