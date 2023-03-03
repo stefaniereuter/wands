@@ -7,3 +7,4 @@ __pycache__
 README_files/
 README.html
 .coverage
+venv/
