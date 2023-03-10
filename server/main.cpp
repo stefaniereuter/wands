@@ -109,39 +109,74 @@ crow::response data(const crow::request& req) {
         H5::H5File hdf5("/Users/jhollocombe/CLionProjects/wands/server/" + uri_string, H5F_ACC_RDONLY);
 
         for (auto& signal : signal_list) {
+            auto data_signal = signal + "/data";
+            auto time_signal = signal + "/time";
+
             CROW_LOG_DEBUG << "signal = " << signal;
             try {
-                auto dset = hdf5.openDataSet(signal);
-                auto type_class = dset.getTypeClass();
-                auto dspace = dset.getSpace();
-                CROW_LOG_DEBUG << "type_class = " << type_class;
+                auto data_dset = hdf5.openDataSet(data_signal);
+                auto data_class = data_dset.getTypeClass();
+                auto data_dspace = data_dset.getSpace();
+                CROW_LOG_DEBUG << "data_class = " << data_class;
 
-                hsize_t rank;
-                rank = dspace.getSimpleExtentNdims();
-                CROW_LOG_DEBUG << "rank = " << rank;
+                hsize_t data_rank = data_dspace.getSimpleExtentNdims();
+                CROW_LOG_DEBUG << "data_rank = " << data_rank;
 
-                std::vector<hsize_t> dims;
-                dims.resize(rank);
-                dspace.getSimpleExtentDims(dims.data(), nullptr);
-                CROW_LOG_DEBUG << "dims = " << dims;
+                if (data_rank != 1) {
+                    return { crow::status::BAD_REQUEST, "invalid data rank" };
+                }
 
+                auto time_dset = hdf5.openDataSet(time_signal);
+                auto time_class = data_dset.getTypeClass();
+                auto time_dspace = data_dset.getSpace();
+                CROW_LOG_DEBUG << "time_class = " << data_class;
+
+                hsize_t time_rank = time_dspace.getSimpleExtentNdims();
+                CROW_LOG_DEBUG << "time_rank = " << time_rank;
+
+                if (time_rank != 1) {
+                    return { crow::status::BAD_REQUEST, "invalid time rank" };
+                }
+
+                if (data_class != time_class) {
+                    return { crow::status::BAD_REQUEST, "data and time types do not match" };
+                }
+
+                std::vector<hsize_t> data_dims;
+                data_dims.resize(data_rank);
+                data_dspace.getSimpleExtentDims(data_dims.data(), nullptr);
+                CROW_LOG_DEBUG << "data_dims = " << data_dims;
+
+                std::vector<hsize_t> time_dims;
+                time_dims.resize(time_rank);
+                time_dspace.getSimpleExtentDims(time_dims.data(), nullptr);
+                CROW_LOG_DEBUG << "time_dims = " << time_dims;
+
+                if (data_dims[0] != time_dims[0]) {
+                    return { crow::status::BAD_REQUEST, "data and time sizes do not match" };
+                }
+
+                hsize_t len = data_dims[0];
+                std::vector<hsize_t> dims = { 2, len };
                 auto sz = std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<>());
 
-                if (type_class == H5T_FLOAT) {
-                    auto flt_type = dset.getFloatType();
+                if (data_class == H5T_FLOAT) {
+                    auto flt_type = data_dset.getFloatType();
                     auto type_size = flt_type.getSize();
 
                     if (type_size == 4) {
                         std::vector<float> result;
                         result.resize(sz);
-                        dset.read(result.data(), H5::PredType::NATIVE_FLOAT, H5S_ALL, H5S_ALL);
+                        data_dset.read(&result[0], H5::PredType::NATIVE_FLOAT, H5S_ALL, H5S_ALL);
+                        time_dset.read(&result[len], H5::PredType::NATIVE_FLOAT, H5S_ALL, H5S_ALL);
                         CROW_LOG_DEBUG << "data = " << result;
 
                         threads.emplace_back(send_data<float>, 8081, signal, result, dims);
                     } else if (type_size == 8) {
                         std::vector<double> result;
                         result.resize(sz);
-                        dset.read(result.data(), H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
+                        data_dset.read(&result[0], H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
+                        time_dset.read(&result[len], H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
                         CROW_LOG_DEBUG << "data = " << result;
 
                         threads.emplace_back(send_data<double>, 8081, signal, result, dims);

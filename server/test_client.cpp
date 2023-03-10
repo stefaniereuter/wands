@@ -28,7 +28,7 @@ int main()
     while (true) {
         auto status = reader.BeginStep();
         if (status == adios2::StepStatus::OK) {
-            floatArrayVar = io.InquireVariable<float>("/amc/AMC_PLASMA CURRENT/data");
+            floatArrayVar = io.InquireVariable<float>("/amc/AMC_PLASMA CURRENT");
             auto shape = floatArrayVar.Shape();
             size_t datasize = std::accumulate(shape.begin(), shape.end(), 1,
                                               std::multiplies<>());
