@@ -35,8 +35,18 @@ int main()
             floatVector.resize(datasize);
             reader.Get<float>(floatArrayVar, floatVector.data(),
                               adios2::Mode::Sync);
-            reader.EndStep();
             PrintData(floatVector, reader.CurrentStep());
+
+            floatArrayVar = io.InquireVariable<float>("/amc/AMC_SOL CURRENT");
+            shape = floatArrayVar.Shape();
+            datasize = std::accumulate(shape.begin(), shape.end(), 1,
+                                              std::multiplies<>());
+            floatVector.resize(datasize);
+            reader.Get<float>(floatArrayVar, floatVector.data(),
+                              adios2::Mode::Sync);
+            PrintData(floatVector, reader.CurrentStep());
+
+            reader.EndStep();
         }
         else if (status == adios2::StepStatus::EndOfStream)
         {

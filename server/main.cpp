@@ -31,10 +31,16 @@ crow::logger& operator<<(crow::logger& out, const std::vector<T>& vec) {
     return out;
 }
 
+struct ReturnData {
+    std::string signal;
+    std::vector<char> data;
+    std::vector<hsize_t> dims;
+    std::string type;
+};
+
 static std::vector<std::thread> threads;
 
-template <typename T>
-void send_data(int port, const std::string& signal, const std::vector<T>& data, const std::vector<hsize_t>& dims) {
+void send_data(int port, std::vector<ReturnData> return_data) {
     adios2::ADIOS adios;
     adios2::IO io = adios.DeclareIO("wands");
     io.SetEngine("DataMan");
@@ -44,18 +50,29 @@ void send_data(int port, const std::string& signal, const std::vector<T>& data, 
                       {"RendezvousReaderCount", "1"}});
 
     auto engine = io.Open("", adios2::Mode::Write);
-    io.DefineAttribute("name", signal);
+//    io.DefineAttribute("name", signal);
 
-    adios2::Dims shape;
-    std::copy(dims.begin(), dims.end(), std::back_inserter(shape));
-    adios2::Dims start;
-    start.resize(shape.size(), 0);
-    adios2::Dims count;
-    std::copy(dims.begin(), dims.end(), std::back_inserter(count));
-
-    auto floatVar = io.DefineVariable<T>(signal, shape, start, count);
     engine.BeginStep();
-    engine.Put(floatVar, data.data());
+    for (const auto& item : return_data) {
+        auto& dims = item.dims;
+
+        adios2::Dims shape;
+        std::copy(dims.begin(), dims.end(), std::back_inserter(shape));
+        adios2::Dims start;
+        start.resize(shape.size(), 0);
+        adios2::Dims count;
+        std::copy(dims.begin(), dims.end(), std::back_inserter(count));
+
+        if (item.type == typeid(float).name()) {
+            auto floatVar = io.DefineVariable<float>(item.signal, shape, start, count);
+            auto buffer = reinterpret_cast<const float*>(item.data.data());
+            engine.Put(floatVar, buffer);
+        } else if (item.type == typeid(double).name()) {
+            auto floatVar = io.DefineVariable<float>(item.signal, shape, start, count);
+            auto buffer = reinterpret_cast<const float*>(item.data.data());
+            engine.Put(floatVar, buffer);
+        }
+    }
     engine.EndStep();
 
     engine.Close();
@@ -107,6 +124,7 @@ crow::response data(const crow::request& req) {
 
     try {
         H5::H5File hdf5("/Users/jhollocombe/CLionProjects/wands/server/" + uri_string, H5F_ACC_RDONLY);
+        std::vector<ReturnData> return_data;
 
         for (auto& signal : signal_list) {
             auto data_signal = signal + "/data";
@@ -165,21 +183,21 @@ crow::response data(const crow::request& req) {
                     auto type_size = flt_type.getSize();
 
                     if (type_size == 4) {
-                        std::vector<float> result;
-                        result.resize(sz);
+                        std::vector<char> result;
+                        result.resize(sz * sizeof(float));
                         data_dset.read(&result[0], H5::PredType::NATIVE_FLOAT, H5S_ALL, H5S_ALL);
                         time_dset.read(&result[len], H5::PredType::NATIVE_FLOAT, H5S_ALL, H5S_ALL);
                         CROW_LOG_DEBUG << "data = " << result;
 
-                        threads.emplace_back(send_data<float>, 8081, signal, result, dims);
+                        return_data.emplace_back(ReturnData{signal, result, dims, typeid(float).name()});
                     } else if (type_size == 8) {
-                        std::vector<double> result;
-                        result.resize(sz);
+                        std::vector<char> result;
+                        result.resize(sz * sizeof(double));
                         data_dset.read(&result[0], H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
                         time_dset.read(&result[len], H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
                         CROW_LOG_DEBUG << "data = " << result;
 
-                        threads.emplace_back(send_data<double>, 8081, signal, result, dims);
+                        return_data.emplace_back(ReturnData{signal, result, dims, typeid(double).name()});
                     }
                 }
             } catch (H5::FileIException& ex) {
@@ -187,6 +205,9 @@ crow::response data(const crow::request& req) {
                 return { crow::status::NOT_FOUND, msg };
             }
         }
+
+        threads.emplace_back(send_data, 8081, std::move(return_data));
+
     } catch (H5::FileIException& ex) {
         auto msg = crow::json::wvalue({{"error", "file not found"}});
         return { crow::status::NOT_FOUND, msg };
