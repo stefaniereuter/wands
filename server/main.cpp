@@ -33,7 +33,11 @@ crow::logger& operator<<(crow::logger& out, const std::vector<T>& vec) {
 
 struct ReturnData {
     std::string signal;
-    std::vector<char> data;
+    //currently can only send double reinstated once  https://github.com/ornladios/ADIOS2/issues/3538 is fixed
+    //std::vector<char> data;
+    //begin bug hack
+    std::vector<double> data;
+    //end bug hack
     std::vector<hsize_t> dims;
     std::string type;
 };
@@ -63,15 +67,24 @@ void send_data(int port, std::vector<ReturnData> return_data) {
         adios2::Dims count;
         std::copy(dims.begin(), dims.end(), std::back_inserter(count));
 
-        if (item.type == typeid(float).name()) {
-            auto floatVar = io.DefineVariable<float>(item.signal, shape, start, count);
-            auto buffer = reinterpret_cast<const float*>(item.data.data());
-            engine.Put(floatVar, buffer);
-        } else if (item.type == typeid(double).name()) {
-            auto floatVar = io.DefineVariable<float>(item.signal, shape, start, count);
-            auto buffer = reinterpret_cast<const float*>(item.data.data());
-            engine.Put(floatVar, buffer);
-        }
+        // This will be the reinstated once https://github.com/ornladios/ADIOS2/issues/3538 is fixed
+        // if (item.type == typeid(float).name()) {
+        //     auto floatVar = io.DefineVariable<float>(item.signal, shape, start, count);
+        //     auto buffer = reinterpret_cast<const float*>(item.data.data());
+        //     engine.Put(floatVar, buffer);
+        // } else if (item.type == typeid(double).name()) {
+        //     auto floatVar = io.DefineVariable<double>(item.signal, shape, start, count);
+        //     auto buffer = reinterpret_cast<const double*>(item.data.data());
+        //     engine.Put(floatVar, buffer);
+        // }
+
+        //begin bug hack
+
+        auto floatVar = io.DefineVariable<double>(item.signal, shape, start, count);
+        CROW_LOG_DEBUG << "data = " << item.data.data();
+        engine.Put(floatVar, item.data.data());
+    
+        //end bug hack
     }
     engine.EndStep();
 
@@ -123,7 +136,7 @@ crow::response data(const crow::request& req) {
     // 1. Find file
 
     try {
-        H5::H5File hdf5("/Users/jhollocombe/CLionProjects/wands/server/" + uri_string, H5F_ACC_RDONLY);
+        H5::H5File hdf5("/home/stefanie/work/adios/adiosnetwork/data/" + uri_string, H5F_ACC_RDONLY);
         std::vector<ReturnData> return_data;
 
         for (auto& signal : signal_list) {
@@ -182,23 +195,35 @@ crow::response data(const crow::request& req) {
                     auto flt_type = data_dset.getFloatType();
                     auto type_size = flt_type.getSize();
 
-                    if (type_size == 4) {
-                        std::vector<char> result;
-                        result.resize(sz * sizeof(float));
-                        data_dset.read(&result[0], H5::PredType::NATIVE_FLOAT, H5S_ALL, H5S_ALL);
-                        time_dset.read(&result[len], H5::PredType::NATIVE_FLOAT, H5S_ALL, H5S_ALL);
-                        CROW_LOG_DEBUG << "data = " << result;
+                    // will be reinstated once https://github.com/ornladios/ADIOS2/issues/3538 is fixed
+                    // if (type_size == 4) {
+                    //     std::vector<char> result;
+                    //     result.resize(sz * sizeof(float));
+                    //     data_dset.read(&result[0], H5::PredType::NATIVE_FLOAT, H5S_ALL, H5S_ALL);
+                    //     time_dset.read(&result[len], H5::PredType::NATIVE_FLOAT, H5S_ALL, H5S_ALL);
+                    //     CROW_LOG_DEBUG << "data = " << result;
 
-                        return_data.emplace_back(ReturnData{signal, result, dims, typeid(float).name()});
-                    } else if (type_size == 8) {
-                        std::vector<char> result;
-                        result.resize(sz * sizeof(double));
-                        data_dset.read(&result[0], H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
-                        time_dset.read(&result[len], H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
-                        CROW_LOG_DEBUG << "data = " << result;
+                    //     return_data.emplace_back(ReturnData{signal, result, dims, typeid(float).name()});
 
-                        return_data.emplace_back(ReturnData{signal, result, dims, typeid(double).name()});
-                    }
+                    // } else if (type_size == 8) {
+                    //     std::vector<char> result;
+                    //     result.resize(sz * sizeof(double));
+                    //     data_dset.read(&result[0], H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
+                    //     time_dset.read(&result[len], H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
+                    //    // CROW_LOG_DEBUG << "data = " << result;
+
+                    //     return_data.emplace_back(ReturnData{signal, result, dims, typeid(double).name()});
+                    // }
+                    
+                    //begin bug hack
+                    std::vector<double> result;
+                    result.resize(sz);
+                    data_dset.read(&result[0], H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
+                    time_dset.read(&result[len], H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
+                    CROW_LOG_DEBUG << signal<< " data = " << result;
+
+                    return_data.emplace_back(ReturnData{signal, result, dims, typeid(double).name()});
+                    //end bug hack
                 }
             } catch (H5::FileIException& ex) {
                 auto msg = crow::json::wvalue({{"error", "signal '" + signal + "' not found"}});

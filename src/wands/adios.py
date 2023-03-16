@@ -137,6 +137,8 @@ class AdiosWands:
         print(f"start in send {start!s}")
         
         sendbuffer = self._io.DefineVariable(var_name, data, shape, start, count, adios2.ConstantDims )
+        #sendbuffer = self._io.DefineVariable(var_name, data, [], [], count, adios2.ConstantDims )
+
         if sendbuffer:
             writer.BeginStep()
             writer.Put(sendbuffer, data, adios2.Mode.Deferred)
@@ -146,6 +148,164 @@ class AdiosWands:
         
         writer.Close()
 
+    def define_variables(self, data_dict:dict)->dict:
+        """
+        Attach the variables to an IO object
+
+        parameters:
+        -----------
+        data_dict: dictionary of names and data to be send
+
+        returns:
+        dict:
+        Returns a dictionary containing the names and defined variables sendbuffer
+        """
+        defined_vars = {
+            var_name: self._io.DefineVariable(var_name,data,[],[],data.shape,adios2.ConstantDims)
+            for var_name, data in data_dict.items()
+        }
+
+        return defined_vars    
+            
+    def send_dict_arrays(self, eng_name:str, data_dict:dict):
+        """
+        Send Array Data in one step
+        Parameters
+        ----------
+        eng_name
+            unique String to name the Writing Engine
+
+
+        data dict . keys are names values are the arrays
+            Data to be sent
+
+        Returns
+        -------
+        None
+        """
+        #defined_vars = self.define_variables(data_dict)
+        writer = self._io.Open(eng_name, adios2.Mode.Write )
+        # name – unique variable identifier
+        # shape – global dimension
+        # start – local offset
+        # count – local dimension
+        # constantDims – true: shape, start, count won’t change, false: shape, start, count will change after definition
+        
+
+        writer.BeginStep()
+        #for var_name ,sendbuf in defined_vars.items():
+        for var_name, data in data_dict.items():
+            shape = data.shape
+            print(f"shape in send: {shape!s}")
+            count = shape
+            print(f"count in send {count!s}")
+            start = (0,) * len(shape)
+            print(f"start in send {start!s}")
+            sendbuffer = self._io.DefineVariable(var_name, data, shape, start, count, adios2.ConstantDims )
+            #writer.Put(sendbuf, data_dict[var_name], adios2.Mode.Deferred)
+            writer.Put(sendbuffer,data,adios2.Mode.Deferred)
+            #raise ValueError("Variable definition failed")
+        
+        writer.EndStep()
+        writer.Close()
+
+    def receive_dict_arrays(self, eng_name:str, variable_list:list[str]):
+        """
+        Receive Data
+
+        Parameters
+        ----------
+        io_name
+            unique String to name the Reading Engine
+
+        var_list
+            list of names that need to be received
+
+
+        Returns
+        -------
+        data
+        """
+        data_dict={}
+        reader = self._io.Open(eng_name, adios2.Mode.Read)
+        while True:
+            stepStatus = reader.BeginStep()
+            if stepStatus == adios2.StepStatus.OK:
+                #inquire for variable
+                for name in variable_list:
+                    recvar = self._io.InquireVariable(name)
+                    if recvar:
+                        # determine the shape of the data that will be sent
+                        bufshape = recvar.Shape()
+                        # allocate buffer for now numpy
+                        data = np.ones(bufshape)
+                        #print(f"data before Get: \n{data!s}")
+                        reader.Get(recvar,data,adios2.Mode.Deferred)
+                        data_dict[name] = data
+                        #print(f"data right after get This might be not right as data might not have been sent yet \n: {data!s}")
+                        #currentStep = reader.CurrentStep()
+                    else:
+                        raise ValueError(f"InquireVariable failed {name!s}")
+            elif stepStatus == adios2.StepStatus.EndOfStream:
+                break
+            else: 
+                raise StopIteration(f"next step failed to initiate {stepStatus!s}")
+            reader.EndStep()
+            #print(f"After end step \n{data!s}")
+        reader.Close()
+        #print(f"after close \n {data!s}")
+        return data_dict
+
+
+    def receive_dict_arrays_multi_steps(self, eng_name:str, variable_list:list[str]):
+        """
+        Receive Data
+
+        Parameters
+        ----------
+        io_name
+            unique String to name the Reading Engine
+
+        var_list
+            list of names that need to be received
+
+
+        Returns
+        -------
+        data
+        """
+        data_dict={}
+        reader = self._io.Open(eng_name, adios2.Mode.Read)
+        #while True:
+        #inquire for variable
+        for name in variable_list:
+
+            stepStatus = reader.BeginStep()
+
+            if stepStatus == adios2.StepStatus.OK:
+                recvar = self._io.InquireVariable(name)
+                if recvar:
+                    print(f"name: {name}")
+                    # determine the shape of the data that will be sent
+                    bufshape = recvar.Shape()
+                    # allocate buffer for now numpy
+                    data = np.ones(bufshape)
+                    # print(f"data before Get: \n{data!s}")
+                    reader.Get(recvar,data,adios2.Mode.Deferred)
+                    data_dict[name] = data
+
+                #print(f"data right after get This might be not right as data might not have been sent yet \n: {data!s}")
+                #currentStep = reader.CurrentStep()
+                else:
+                    raise ValueError(f"InquireVariable failed {name!s}")
+            elif stepStatus == adios2.StepStatus.EndOfStream:
+                break
+            else: 
+                raise StopIteration(f"next step failed to initiate {stepStatus!s}")
+            #print(f"After end step \n{data!s}")
+        reader.Close()
+        #print(f"after close \n {data!s}")
+        return data_dict
 
     def send_rawdata(self, eng_name:str, var_name:str, data:RawData):
         """
@@ -196,59 +356,71 @@ class AdiosWands:
 
         self.send_array(eng_name,var_name,np.array(sendmatrix))
 
-    def send_steps(self, eng_name:str, var_name:str, data, chunks):
+    def send_rawdata_list(self, eng_name:str, rd_list:list[RawData]):
         """
-        Send Data in multiple steps
-
+        Send Array Data in one step
         Parameters
         ----------
-        io_name
+        eng_name
             unique String to name the Writing Engine
 
-        var_name
-            unique name for the variable to be send. This will be queried by the receiver
 
-        data
-            Data to be sent
-
-        chunks
-            number of elements per chunk to be send: at the moment it needs the explicit form of a tuple to account for all elements 
-            for example ((2,2,1),(2,2,2)) for a matrix in the shape of shape = (5,6) -> (2,2,1) is for the first dimension (5 elements) and (2,2,2) accounts for the second dimension (6 elements) 
-            therefore the data will be send in blocks of 6 blocks of (2x2) elements and 3 blocks of (1x2) elements  
-            At the moment the user is responsible for making sure that all data is accounted for in these chunks (This will be changed later on)
+        rd_list list of raw data
 
         Returns
         -------
         None
         """
-        
-        # Sort chunks:
-        # ATM it  needs the correct form but should be handles similar to normalize_chunks in dask.array.core
-        raise KeyError(f"sending in steps not yet implemented")
-    
-
+        #defined_vars = self.define_variables(data_dict)
+        print(f"sending raw list")
+        print(rd_list)
         writer = self._io.Open(eng_name, adios2.Mode.Write )
         # name – unique variable identifier
         # shape – global dimension
         # start – local offset
         # count – local dimension
         # constantDims – true: shape, start, count won’t change, false: shape, start, count will change after definition
-        shape = data.shape
-        print(f"shape in send: {shape!s}")
-        count = shape
-        print(f"count in send {count!s}")
-        start = (0,) * len(shape)
-        print(f"start in send {start!s}")
+        print(f"opened ")
+
+        writer.BeginStep()
+        #for var_name ,sendbuf in defined_vars.items():
+        for rd in rd_list:
+            print(rd)
+            name = rd.get_name()
+            print(f"Signal: {name}")
+            sendmatrix = []
+            #send time if not None
+            time = rd.get_time()
+            if time is not None:
+                sendmatrix.append(time)
+            else: 
+                warnings.warn(f"could not retrieve time array for {name!s}, will not be sent")
+         
+            #send data if not None
+            data = rd.get_data()
+            if data is not None:
+                sendmatrix.append(data)
+            else:
+                warnings.warn(f"could not retrieve data array for {name!s}, will not be sent")
+
+            #self.send_array(eng_name,name,np.array(sendmatrix))
+            nd_matrix = np.array(sendmatrix)
+            print(f"type matrix {type(nd_matrix)!s}")
+            shape = nd_matrix.shape
+            print(f"shape in send: {shape!s}")
+            count = shape
+            print(f"count in send {count!s}")
+            start = (0,) * len(shape)
+            print(f"start in send {start!s}")
+            sendbuffer = self._io.DefineVariable(name, nd_matrix, shape, start, count, adios2.ConstantDims )
+            #writer.Put(sendbuf, data_dict[var_name], adios2.Mode.Deferred)
+            writer.Put(sendbuffer,data,adios2.Mode.Deferred)
+            #raise ValueError("Variable definition failed")
         
-        sendbuffer = self._io.DefineVariable(var_name, data, shape, start, count, adios2.ConstantDims )
-        if sendbuffer:
-            writer.BeginStep()
-            writer.Put(sendbuffer, data, adios2.Mode.Deferred)
-            writer.EndStep()
-        else:
-            raise ValueError("Variable definition failed")
-        
+        writer.EndStep()
         writer.Close()
+
+
 
     def receive(self, eng_name:str, variable_name:str):
         """
@@ -333,9 +505,7 @@ class AdiosWands:
         else:
             raise ValueError(" Transportmode not specified yet")
         
-    
-
-
+  
 # class AdiosSend:
 #     """
 #     Send data through ADIOS.
