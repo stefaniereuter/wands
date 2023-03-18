@@ -1,6 +1,6 @@
 ###Rest Server
 
-from wands import AdiosWands, RawData
+from wands import WandsWAN, RawData
 import requests
 
 data = {
@@ -45,7 +45,7 @@ params =  {
 
 #axis = ["/xmc/XMC/ACQ196_143/CH01","xbt/XBT/CHANNEL16"]
 #axis = ['A','B']
-adios_r = AdiosWands(link="Reader",parameters=params)
+adios_r = WandsWAN(link="Reader",parameters=params)
 data_dict = adios_r.receive_dict_arrays("IOS",data['signals'])
 print(data_dict)
 #rdo_r = RawData(axis)

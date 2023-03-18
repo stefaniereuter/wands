@@ -220,7 +220,7 @@ crow::response data(const crow::request& req) {
                     result.resize(sz);
                     data_dset.read(&result[0], H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
                     time_dset.read(&result[len], H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
-                    CROW_LOG_DEBUG << signal<< " data = " << result;
+                    CROW_LOG_DEBUG << signal<< "data = " << result;
 
                     return_data.emplace_back(ReturnData{signal, result, dims, typeid(double).name()});
                     //end bug hack

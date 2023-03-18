@@ -7,4 +7,8 @@ __pycache__
 README_files/
 README.html
 .coverage
-venv/
+*venv/
+local_cache/
+build/
+bash-env.sh
+.vscode
