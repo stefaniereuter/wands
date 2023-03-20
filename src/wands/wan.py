@@ -89,7 +89,7 @@ class WandsWAN:
         -------
         None
         """
-        writer = self._adob.getIO().Open(eng_name, adios2.Mode.Write )
+        writer = self._adob.get_IO().Open(eng_name, adios2.Mode.Write )
         # name – unique variable identifier
         # shape – global dimension
         # start – local offset
@@ -102,7 +102,7 @@ class WandsWAN:
         start = (0,) * len(shape)
         print(f"start in send {start!s}")
         
-        sendbuffer = self._adob.getIO().DefineVariable(var_name, data, shape, start, count, adios2.ConstantDims )
+        sendbuffer = self._adob.get_IO().DefineVariable(var_name, data, shape, start, count, adios2.ConstantDims )
         #sendbuffer = self._io.DefineVariable(var_name, data, [], [], count, adios2.ConstantDims )
 
         if sendbuffer:
@@ -127,7 +127,7 @@ class WandsWAN:
         Returns a dictionary containing the names and defined variables sendbuffer
         """
         defined_vars = {
-            var_name: self._adob.getIO().DefineVariable(var_name,data,[],[],data.shape,adios2.ConstantDims)
+            var_name: self._adob.get_IO().DefineVariable(var_name,data,[],[],data.shape,adios2.ConstantDims)
             for var_name, data in data_dict.items()
         }
 
@@ -150,7 +150,7 @@ class WandsWAN:
         None
         """
         #defined_vars = self.define_variables(data_dict)
-        writer = self._adob.getIO().Open(eng_name, adios2.Mode.Write )
+        writer = self._adob.get_IO().Open(eng_name, adios2.Mode.Write )
         # name – unique variable identifier
         # shape – global dimension
         # start – local offset
@@ -167,7 +167,7 @@ class WandsWAN:
             print(f"count in send {count!s}")
             start = (0,) * len(shape)
             print(f"start in send {start!s}")
-            sendbuffer = self._adob.getIO().DefineVariable(var_name, data, shape, start, count, adios2.ConstantDims )
+            sendbuffer = self._adob.get_IO().DefineVariable(var_name, data, shape, start, count, adios2.ConstantDims )
             #writer.Put(sendbuf, data_dict[var_name], adios2.Mode.Deferred)
             writer.Put(sendbuffer,data,adios2.Mode.Deferred)
             #raise ValueError("Variable definition failed")
@@ -175,7 +175,7 @@ class WandsWAN:
         writer.EndStep()
         writer.Close()
 
-    def receive(self, request):
+    def receive(self, request, engine_name = "WAN"):
         """
         Send data via adios. Currently supported ndarray or RawData
 
@@ -196,9 +196,9 @@ class WandsWAN:
 
         """
         if isinstance(request,str):
-            return self.receive_one_signal("WAN",request)
+            return self.receive_one_signal(engine_name,request)
         if isinstance(request,list):
-            return self.receive_dict_arrays("WAN",request)
+            return self.receive_dict_arrays(engine_name,request)
         else:
             raise TypeError("only single strings or a list of strings can be requested")
     def receive_dict_arrays(self, eng_name:str, variable_list:list[str]) -> dict:
@@ -219,18 +219,20 @@ class WandsWAN:
         data
         """
         data_dict={}
-        reader = self._adob.getIO().Open(eng_name, adios2.Mode.Read)
+        reader = self._adob.get_IO().Open(eng_name, adios2.Mode.Read)
         while True:
             stepStatus = reader.BeginStep()
             if stepStatus == adios2.StepStatus.OK:
                 #inquire for variable
                 for name in variable_list:
-                    recvar = self._adob.getIO().InquireVariable(name)
+                    recvar = self._adob.get_IO().InquireVariable(name)
                     if recvar:
                         # determine the shape of the data that will be sent
                         bufshape = recvar.Shape()
                         # allocate buffer for now numpy
-                        data = np.ones(bufshape)
+                        #replace("_t","") necessary because 
+                        print(f"Datatype {recvar.Type()}")
+                        data = np.ones(bufshape,dtype=recvar.Type().replace("_t",""))
                         #print(f"data before Get: \n{data!s}")
                         reader.Get(recvar,data,adios2.Mode.Deferred)
                         data_dict[name] = data
@@ -249,55 +251,56 @@ class WandsWAN:
         return data_dict
 
 
-    def receive_dict_arrays_multi_steps(self, eng_name:str, variable_list:list[str]):
-        """
-        Receive Data
+    # def receive_dict_arrays_multi_steps(self, eng_name:str, variable_list:list[str]):
+    #     """
+    #     Receive Data
 
-        Parameters
-        ----------
-        io_name
-            unique String to name the Reading Engine
+    #     Parameters
+    #     ----------
+    #     io_name
+    #         unique String to name the Reading Engine
 
-        var_list
-            list of names that need to be received
+    #     var_list
+    #         list of names that need to be received
 
 
-        Returns
-        -------
-        data
-        """
-        data_dict={}
-        reader = self._adob.getIO().Open(eng_name, adios2.Mode.Read)
-        #while True:
-        #inquire for variable
-        for name in variable_list:
+    #     Returns
+    #     -------
+    #     data
+    #     """
+    #     data_dict={}
+    #     reader = self._adob.get_IO().Open(eng_name, adios2.Mode.Read)
+    #     #while True:
+    #     #inquire for variable
+    #     for name in variable_list:
 
-            stepStatus = reader.BeginStep()
+    #         stepStatus = reader.BeginStep()
 
-            if stepStatus == adios2.StepStatus.OK:
-                recvar = self._adob.getIO().InquireVariable(name)
-                if recvar:
-                    print(f"name: {name}")
-                    # determine the shape of the data that will be sent
-                    bufshape = recvar.Shape()
-                    # allocate buffer for now numpy
-                    data = np.ones(bufshape)
-                    # print(f"data before Get: \n{data!s}")
-                    reader.Get(recvar,data,adios2.Mode.Deferred)
-                    data_dict[name] = data
+    #         if stepStatus == adios2.StepStatus.OK:
+    #             recvar = self._adob.get_IO().InquireVariable(name)
+    #             if recvar:
+    #                 print(f"name: {name}")
+    #                 # determine the shape of the data that will be sent
+    #                 bufshape = recvar.Shape()
+    #                 # allocate buffer for now numpy
+    #                 # #replace("_t","") necessary because 
+    #                 data = np.ones(bufshape,dtype=recvar.Type().replace("_t",""))
+    #                 # print(f"data before Get: \n{data!s}")
+    #                 reader.Get(recvar,data,adios2.Mode.Deferred)
+    #                 data_dict[name] = data
 
-                #print(f"data right after get This might be not right as data might not have been sent yet \n: {data!s}")
-                #currentStep = reader.CurrentStep()
-                else:
-                    raise ValueError(f"InquireVariable failed {name!s}")
-            elif stepStatus == adios2.StepStatus.EndOfStream:
-                break
-            else: 
-                raise StopIteration(f"next step failed to initiate {stepStatus!s}")
-            #print(f"After end step \n{data!s}")
-        reader.Close()
-        #print(f"after close \n {data!s}")
-        return data_dict
+    #             #print(f"data right after get This might be not right as data might not have been sent yet \n: {data!s}")
+    #             #currentStep = reader.CurrentStep()
+    #             else:
+    #                 raise ValueError(f"InquireVariable failed {name!s}")
+    #         elif stepStatus == adios2.StepStatus.EndOfStream:
+    #             break
+    #         else: 
+    #             raise StopIteration(f"next step failed to initiate {stepStatus!s}")
+    #         #print(f"After end step \n{data!s}")
+    #     reader.Close()
+    #     #print(f"after close \n {data!s}")
+    #     return data_dict
 
     def send_rawdata(self, eng_name:str, var_name:str, data:RawData):
         """
@@ -366,7 +369,7 @@ class WandsWAN:
         #defined_vars = self.define_variables(data_dict)
         print(f"sending raw list")
         print(rd_list)
-        writer = self._adob.getIO().Open(eng_name, adios2.Mode.Write )
+        writer = self._adob.get_IO().Open(eng_name, adios2.Mode.Write )
         # name – unique variable identifier
         # shape – global dimension
         # start – local offset
@@ -404,7 +407,7 @@ class WandsWAN:
             print(f"count in send {count!s}")
             start = (0,) * len(shape)
             print(f"start in send {start!s}")
-            sendbuffer = self._adob.getIO().DefineVariable(name, nd_matrix, shape, start, count, adios2.ConstantDims )
+            sendbuffer = self._adob.get_IO().DefineVariable(name, nd_matrix, shape, start, count, adios2.ConstantDims )
             #writer.Put(sendbuf, data_dict[var_name], adios2.Mode.Deferred)
             writer.Put(sendbuffer,data,adios2.Mode.Deferred)
             #raise ValueError("Variable definition failed")
@@ -431,17 +434,18 @@ class WandsWAN:
         -------
         data
         """
-        reader = self._adob.getIO().Open(eng_name, adios2.Mode.Read)
+        reader = self._adob.get_IO().Open(eng_name, adios2.Mode.Read)
         while True:
             stepStatus = reader.BeginStep()
             if stepStatus == adios2.StepStatus.OK:
                 #inquire for variable
-                recvar = self._adob.getIO().InquireVariable(variable_name)
+                recvar = self._adob.get_IO().InquireVariable(variable_name)
                 if recvar:
                     # determine the shape of the data that will be sent
                     bufshape = recvar.Shape()
-                    # allocate buffer for now numpy
-                    data = np.ones(bufshape)
+                    # allocate buffer for now numpy Type() returns a cpp type e.g. int64_t
+                    #replace("_t","") necessary because 
+                    data = np.ones(bufshape,dtype=recvar.Type().replace("_t",""))
                     #print(f"data before Get: \n{data!s}")
                     reader.Get(recvar,data,adios2.Mode.Deferred)
                     #print(f"data right after get This might be not right as data might not have been sent yet \n: {data!s}")

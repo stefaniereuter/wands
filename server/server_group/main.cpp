@@ -35,9 +35,9 @@ struct ReturnData {
     std::string signal;
     //currently can only send double reinstated once  https://github.com/ornladios/ADIOS2/issues/3538 is fixed
     //std::vector<char> data;
-    // //begin bug hack
+    //begin bug hack
     std::vector<double> data;
-    // //end bug hack
+    //end bug hack
     std::vector<hsize_t> dims;
     std::string type;
 };
@@ -67,23 +67,21 @@ void send_data(int port, std::vector<ReturnData> return_data) {
         adios2::Dims count;
         std::copy(dims.begin(), dims.end(), std::back_inserter(count));
 
-        // // This will be the reinstated once https://github.com/ornladios/ADIOS2/issues/3538 is fixed
+        // This will be the reinstated once https://github.com/ornladios/ADIOS2/issues/3538 is fixed
         // if (item.type == typeid(float).name()) {
         //     auto floatVar = io.DefineVariable<float>(item.signal, shape, start, count);
         //     auto buffer = reinterpret_cast<const float*>(item.data.data());
-        //     //CROW_LOG_DEBUG << "data = " << buffer;
-        //     engine.Put(floatVar, *buffer);
+        //     engine.Put(floatVar, buffer);
         // } else if (item.type == typeid(double).name()) {
         //     auto floatVar = io.DefineVariable<double>(item.signal, shape, start, count);
         //     auto buffer = reinterpret_cast<const double*>(item.data.data());
-        //     //CROW_LOG_DEBUG << "data = " << buffer;
         //     engine.Put(floatVar, buffer);
         // }
 
         //begin bug hack
 
         auto floatVar = io.DefineVariable<double>(item.signal, shape, start, count);
-        //CROW_LOG_DEBUG << "data = " << item.data.data();
+        CROW_LOG_DEBUG << "data = " << item.data.data();
         engine.Put(floatVar, item.data.data());
     
         //end bug hack
@@ -142,13 +140,12 @@ crow::response data(const crow::request& req) {
         std::vector<ReturnData> return_data;
 
         for (auto& signal : signal_list) {
-            // auto data_signal = signal + "/data";
-            // auto time_signal = signal + "/time";
-
+            auto data_signal = signal + "/data";
+            auto time_signal = signal + "/time";
 
             CROW_LOG_DEBUG << "signal = " << signal;
             try {
-                auto data_dset = hdf5.openDataSet(signal);
+                auto data_dset = hdf5.openDataSet(data_signal);
                 auto data_class = data_dset.getTypeClass();
                 auto data_dspace = data_dset.getSpace();
                 CROW_LOG_DEBUG << "data_class = " << data_class;
@@ -156,54 +153,76 @@ crow::response data(const crow::request& req) {
                 hsize_t data_rank = data_dspace.getSimpleExtentNdims();
                 CROW_LOG_DEBUG << "data_rank = " << data_rank;
 
-                // if (data_rank != 1) {
-                //     return { crow::status::BAD_REQUEST, "invalid data rank" };
-                // }
+                if (data_rank != 1) {
+                    return { crow::status::BAD_REQUEST, "invalid data rank" };
+                }
+
+                auto time_dset = hdf5.openDataSet(time_signal);
+                auto time_class = data_dset.getTypeClass();
+                auto time_dspace = data_dset.getSpace();
+                CROW_LOG_DEBUG << "time_class = " << data_class;
+
+                hsize_t time_rank = time_dspace.getSimpleExtentNdims();
+                CROW_LOG_DEBUG << "time_rank = " << time_rank;
+
+                if (time_rank != 1) {
+                    return { crow::status::BAD_REQUEST, "invalid time rank" };
+                }
+
+                if (data_class != time_class) {
+                    return { crow::status::BAD_REQUEST, "data and time types do not match" };
+                }
 
                 std::vector<hsize_t> data_dims;
                 data_dims.resize(data_rank);
                 data_dspace.getSimpleExtentDims(data_dims.data(), nullptr);
                 CROW_LOG_DEBUG << "data_dims = " << data_dims;
 
-       
-                // hsize_t len = data_dims[0];
-                // std::vector<hsize_t> dims;
-                // dims.resize(data_rank);
-                // std::vector<hsize_t> dims = { 2, len };
-                auto sz = std::accumulate(data_dims.begin(), data_dims.end(), 1, std::multiplies<>());
+                std::vector<hsize_t> time_dims;
+                time_dims.resize(time_rank);
+                time_dspace.getSimpleExtentDims(time_dims.data(), nullptr);
+                CROW_LOG_DEBUG << "time_dims = " << time_dims;
+
+                if (data_dims[0] != time_dims[0]) {
+                    return { crow::status::BAD_REQUEST, "data and time sizes do not match" };
+                }
+
+                hsize_t len = data_dims[0];
+                std::vector<hsize_t> dims = { 2, len };
+                auto sz = std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<>());
 
                 if (data_class == H5T_FLOAT) {
                     auto flt_type = data_dset.getFloatType();
                     auto type_size = flt_type.getSize();
 
-                //  //   will be reinstated once https://github.com/ornladios/ADIOS2/issues/3538 is fixed
-                //     if (type_size == 4) {
-                //         std::vector<char> result;
-                //         result.resize(sz * sizeof(float));
-                //         data_dset.read(&result[0], H5::PredType::NATIVE_FLOAT, H5S_ALL, H5S_ALL);
-                //         time_dset.read(&result[len], H5::PredType::NATIVE_FLOAT, H5S_ALL, H5S_ALL);
-                //         //CROW_LOG_DEBUG << "data = " << reinterpret_cast<const float>(result);
+                    // will be reinstated once https://github.com/ornladios/ADIOS2/issues/3538 is fixed
+                    // if (type_size == 4) {
+                    //     std::vector<char> result;
+                    //     result.resize(sz * sizeof(float));
+                    //     data_dset.read(&result[0], H5::PredType::NATIVE_FLOAT, H5S_ALL, H5S_ALL);
+                    //     time_dset.read(&result[len], H5::PredType::NATIVE_FLOAT, H5S_ALL, H5S_ALL);
+                    //     CROW_LOG_DEBUG << "data = " << result;
 
-                //         return_data.emplace_back(ReturnData{signal, result, dims, typeid(float).name()});
+                    //     return_data.emplace_back(ReturnData{signal, result, dims, typeid(float).name()});
 
-                //     } else if (type_size == 8) {
-                //         std::vector<char> result;
-                //         result.resize(sz * sizeof(double));
-                //         data_dset.read(&result[0], H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
-                //         time_dset.read(&result[len], H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
-                //         //CROW_LOG_DEBUG << "data = " << reinterpret_cast<const double>(result);
+                    // } else if (type_size == 8) {
+                    //     std::vector<char> result;
+                    //     result.resize(sz * sizeof(double));
+                    //     data_dset.read(&result[0], H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
+                    //     time_dset.read(&result[len], H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
+                    //    // CROW_LOG_DEBUG << "data = " << result;
 
-                //         return_data.emplace_back(ReturnData{signal, result, dims, typeid(double).name()});
-                //     }
+                    //     return_data.emplace_back(ReturnData{signal, result, dims, typeid(double).name()});
+                    // }
                     
                     //begin bug hack
                     std::vector<double> result;
                     result.resize(sz);
-                    data_dset.read(result.data(), H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
-                    //time_dset.read(&result[len], H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
+                    data_dset.read(&result[0], H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
+                    time_dset.read(&result[len], H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
                     CROW_LOG_DEBUG << signal<< "data = " << result;
 
-                    return_data.emplace_back(ReturnData{signal, result, data_dims, typeid(double).name()});
+                    return_data.emplace_back(ReturnData{signal, result, dims, typeid(double).name()});
                     //end bug hack
                 }
             } catch (H5::FileIException& ex) {

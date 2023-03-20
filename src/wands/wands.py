@@ -18,10 +18,10 @@ class Wands:
             "RendezvousReaderCount": RendezvousReaderCount,
         }
         self._webaddress = webaddress
-        self._dataCache_obj = DataCache(Path(data_cache_path))
+        self.dataCache = DataCache(Path(data_cache_path))
 
     def cache_location(self):
-        return self._dataCache_obj.path_str()
+        return self.dataCache.path_str()
     
     def request(self,filename:str, data_list: list) -> dict:
         """
@@ -30,11 +30,13 @@ class Wands:
         """
         #
         #remove locally available datasets from list
-        #TODO change to pass the empty dicts to check availability 
         print(f"request: type datalist: {type(data_list)}")
         data_from_remote = {}
-        remote_list,data_from_cache_dict = self._dataCache_obj.check_availability(filename=filename,data_list=data_list)
-
+        remote_list, local_list = self.dataCache.check_availability(filename=filename,data_list=data_list)
+        
+        data_from_cache = self.dataCache.load_from_cache(filename=filename,local_list=local_list)
+        print(f"Signals found locally: {local_list}")
+        print(f"Signals to be requested remotely: {remote_list}")
         if remote_list:
             data = {
                 'uri': filename,
@@ -44,7 +46,7 @@ class Wands:
             print(response.status_code)
             print(response.json())
             wandsWAN_obj = WandsWAN(parameters = self._Adiosparams)
+            
             data_from_remote = wandsWAN_obj.receive(remote_list)
-            print("CHANGE SERVER TO SINGLE SIGNAL")
-            self._dataCache_obj.write(filename=filename,data_dict = data_from_remote)
-        return data_from_remote | data_from_cache_dict
+            self.dataCache.write(filename=filename,data_dict = data_from_remote)
+        return data_from_remote | data_from_cache

@@ -29,8 +29,15 @@ from wands import Wands
 # }
 
 filename = "30420.h5"
-signals = ["/xmc/XMC/ACQ196_143/CH01",
-           "/xtb/XTB_201_1"]
+signals = ["/xmc/XMC/ACQ196_143/CH01/data",
+           "/xmc/XMC/ACQ196_143/CH01/time",
+           "/xtb/XTB_201_1/data",
+           "/xtb/XTB_201_1/time"]
+signals = ["/xmc/XMC/ACQ196_143/CH01/data",
+           "/xyc/XYC/305/2/BACKGROUND/data",
+           "/xmc/XMC/ACQ196_143/CH01/time",
+           "/xtb/XTB_201_1/data",
+           "/xtb/XTB_201_1/time",]
 
 local_path = "/home/stefanie/work/adios/adiosnetwork/local_cache"
               

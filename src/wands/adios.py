@@ -29,7 +29,10 @@ class AdiosObject:
         try:
             self._io = adios_io.DeclareIO(self._link)
         except ValueError as ex:
-            raise ValueError("IO declared twice") from ex
+            try:
+                self._io = adios_io.AtIO(self._link)
+            except:  
+                raise ValueError("IO declared twice") from ex
         self._io.SetEngine(self._engine)
         if parameters:
             self._parameters = parameters
@@ -64,15 +67,21 @@ class AdiosObject:
         #print(type(parameters))
         self._parameters = parameters
         self._io.SetParameters(parameters)
+    
+    def get_parameters(self):
+        return self._parameters
 
-    def getAdios(self):
+    def get_adios(self):
         return adios_io
     
-    def getEngine(self):
+    def get_engine(self):
         return self._engine
     
-    def getIO(self):
+    def get_IO(self):
         return self._io
+    
+    def get_link(self):
+        return self._link
 # #move those functions out of the class
 #     def getIPAddress(self):
 #         if self._parameters["IPAddress"] is not None:
