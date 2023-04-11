@@ -44,7 +44,7 @@ class DataCache:
             
         #modify string to delete .hdf5 with string find
         bpfilename_path = self._path / filename.replace('.h5','.bp')
-        print(bpfilename_path)
+        #print(bpfilename_path)
         writer = self._adob.get_IO().Open(f"{bpfilename_path!s}",adios2.Mode.Append)
 
         writer.BeginStep()
@@ -54,11 +54,11 @@ class DataCache:
                 continue
             
             shape = data.shape
-            print(f"shape in send: {shape!s}")
+            #print(f"shape in send: {shape!s}")
             count = shape
-            print(f"count in send {count!s}")
+            #print(f"count in send {count!s}")
             start = (0,) * len(shape)
-            print(f"start in send {start!s}")
+            #print(f"start in send {start!s}")
             sendbuffer = self._adob.get_IO().DefineVariable(var_name, data, shape, start, count, adios2.ConstantDims )
             #writer.Put(sendbuf, data_dict[var_name], adios2.Mode.Deferred)
             writer.Put(sendbuffer,data,adios2.Mode.Sync)
