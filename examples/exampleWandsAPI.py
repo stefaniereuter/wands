@@ -39,9 +39,10 @@ signals = ["/xmc/XMC/ACQ196_143/CH01/data",
            "/xtb/XTB_201_1/data",
            "/xtb/XTB_201_1/time",]
 
-local_path = "/home/stefanie/work/adios/adiosnetwork/local_cache"
+local_path = "/home/sr2003/rds/rds-hpc-support-5mCMIDBOkPU/sr2003/UKAEA/wands_cache"
               
-wo = Wands(local_path)
+wo = Wands(local_path,Port="12345")
+#wo = Wands(local_path)
 print(f"exampelwands {type(signals)}")
 data_dict = wo.request(filename,signals)
 print(data_dict)

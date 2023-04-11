@@ -50,13 +50,19 @@ void send_data(int port, std::vector<ReturnData> return_data) {
     io.SetEngine("DataMan");
     io.SetParameters({{"IPAddress", "127.0.0.1"},
                       {"Port", std::to_string(port)},
-                      {"Timeout", "5"},
-                      {"RendezvousReaderCount", "1"}});
+                      {"Timeout", "100"},
+                      {"TransportMode","reliable"},
+                      {"RendezvousReaderCount", "1"},
+                      {"Threading","false"}});
+    
+    CROW_LOG_DEBUG << "initiating send ";
 
-    auto engine = io.Open("", adios2::Mode::Write);
+    auto engine = io.Open("WAN", adios2::Mode::Write);
+    CROW_LOG_DEBUG << "ENGINE OPEN";
 //    io.DefineAttribute("name", signal);
 
     engine.BeginStep();
+    CROW_LOG_DEBUG << "Begin Step";
     for (const auto& item : return_data) {
         auto& dims = item.dims;
 
@@ -84,7 +90,10 @@ void send_data(int port, std::vector<ReturnData> return_data) {
 
         auto floatVar = io.DefineVariable<double>(item.signal, shape, start, count);
         //CROW_LOG_DEBUG << "data = " << item.data.data();
+
+        CROW_LOG_DEBUG << "before put";
         engine.Put(floatVar, item.data.data());
+        CROW_LOG_DEBUG << "after put";
     
         //end bug hack
     }
@@ -103,7 +112,7 @@ crow::response data(const crow::request& req) {
 
     // POST data
     // - uri [STRING]
-    // - signals [LIST]
+    // - signals [LIST] 
 
     if (data.has("uri")) {
         auto& uri = data["uri"];
@@ -212,7 +221,7 @@ crow::response data(const crow::request& req) {
             }
         }
 
-        threads.emplace_back(send_data, 8081, std::move(return_data));
+        threads.emplace_back(send_data, 12345, std::move(return_data));
 
     } catch (H5::FileIException& ex) {
         auto msg = crow::json::wvalue({{"error", "file not found"}});
@@ -228,7 +237,7 @@ crow::response data(const crow::request& req) {
     // 5. Return ADIOS port to client
 
     crow::json::wvalue msg;
-    msg["port"] = 8081;
+    msg["port"] = 12345;
 
     // RETURN
     // 200 - all good
