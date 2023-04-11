@@ -51,7 +51,9 @@ void send_data(int port, std::vector<ReturnData> return_data) {
     io.SetParameters({{"IPAddress", "127.0.0.1"},
                       {"Port", std::to_string(port)},
                       {"Timeout", "5"},
-                      {"RendezvousReaderCount", "1"}});
+                      {"TransportMode","reliable"},
+                      {"RendezvousReaderCount", "1"},
+                      {"Threading","false"}});
 
     auto engine = io.Open("", adios2::Mode::Write);
 //    io.DefineAttribute("name", signal);
@@ -138,7 +140,7 @@ crow::response data(const crow::request& req) {
     // 1. Find file
 
     try {
-        H5::H5File hdf5("/home/stefanie/work/adios/adiosnetwork/data/" + uri_string, H5F_ACC_RDONLY);
+        H5::H5File hdf5("/home/sr2003/rds/rds-hpc-support-5mCMIDBOkPU/sr2003/UKAEA/Datafiles/" + uri_string, H5F_ACC_RDONLY);
         std::vector<ReturnData> return_data;
 
         for (auto& signal : signal_list) {
@@ -228,7 +230,7 @@ crow::response data(const crow::request& req) {
     // 5. Return ADIOS port to client
 
     crow::json::wvalue msg;
-    msg["port"] = 8081;
+    msg["port"] = 12345;
 
     // RETURN
     // 200 - all good

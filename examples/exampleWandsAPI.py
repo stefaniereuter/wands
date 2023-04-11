@@ -29,19 +29,21 @@ from wands import Wands
 # }
 
 filename = "30420.h5"
-signals = ["/xmc/XMC/ACQ196_143/CH01/data",
-           "/xmc/XMC/ACQ196_143/CH01/time",
-           "/xtb/XTB_201_1/data",
-           "/xtb/XTB_201_1/time"]
+# signals = ["/xmc/XMC/ACQ196_143/CH01/data",
+#            "/xmc/XMC/ACQ196_143/CH01/time",
+#            "/xtb/XTB_201_1/data",
+#            "/xtb/XTB_201_1/time"]
 signals = ["/xmc/XMC/ACQ196_143/CH01/data",
            "/xyc/XYC/305/2/BACKGROUND/data",
            "/xmc/XMC/ACQ196_143/CH01/time",
            "/xtb/XTB_201_1/data",
            "/xtb/XTB_201_1/time",]
 
-local_path = "/home/stefanie/work/adios/adiosnetwork/local_cache"
+# filename = "small_test_data.h5"
+# signals = ["signal1/data"]
+local_path = "/home/sr2003/rds/rds-hpc-support-5mCMIDBOkPU/sr2003/UKAEA/wands_cache"
               
-wo = Wands(local_path)
+wo = Wands(local_path, Port="12345")
 print(f"exampelwands {type(signals)}")
 data_dict = wo.request(filename,signals)
 print(data_dict)

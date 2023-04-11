@@ -4,7 +4,7 @@ from wands import AdiosWands, RawData
 
 params =  {
     "IPAddress": "127.0.0.1",
-    "Port": "12307",
+    "Port": "12345",
     "Timeout": "6",
     "TransportMode": "reliable",
     "RendezvousReaderCount": "1",
