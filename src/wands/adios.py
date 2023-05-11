@@ -8,7 +8,8 @@ import adios2
 
 
 
-#IO object (only one per application) therefore a global variable within this module 
+#Adios  object (only one per application) therefore a global variable within this module TODO rename to adios
+
 adios_io = None
 
 
@@ -32,15 +33,25 @@ class AdiosObject:
             try:
                 self._io = adios_io.AtIO(self._link)
             except:  
-                raise ValueError("IO declared twice") from ex
-        self._io.SetEngine(self._engine)
+                raise ValueError("Declare IO failed") from ex
+        try:
+            self._io.SetEngine(self._engine)
+        except ValueError as ex:
+            try:
+                self._io.Open(self._engine)
+            except:
+                raise ValueError("Opening the engine failed") from ex
         if parameters:
             self._parameters = parameters
             self.set_parameters(self._parameters)
         else:
             self._parameters = None
         
-
+    def close(self):
+        self._io.FlushAll()
+        self._io.RemoveAllVariables()
+        self._io.RemoveAllAttributes()
+        adios_io.RemoveIO(self._link)
     def __str__(self):
         """
         Retruns
@@ -82,6 +93,22 @@ class AdiosObject:
     
     def get_link(self):
         return self._link
+    
+    def get_avail_attributes(self):
+        return self._io.AvailableAttributes()
+    
+    def get_avail_variables(self):
+        return self._io.AvailableVariables()
+    
+    def print_info(self):
+        print(f"Name: {self.get_link()!s}")
+        print(f"Engine: {self.get_engine()!s}")
+        print(f"Parameters: {self.get_parameters()!s}")
+        print(f"Variables: {self.get_avail_variables()!s}")
+        print(f"Attributes: {self.get_avail_attributes()!s}")
+    
+    # def remove_all_variables(self):
+    #     self.RemoveAllVariables()
 # #move those functions out of the class
 #     def getIPAddress(self):
 #         if self._parameters["IPAddress"] is not None:

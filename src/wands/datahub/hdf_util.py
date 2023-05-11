@@ -4,7 +4,7 @@ import h5py
 import numpy as np
 import warnings
 
-class RawData:
+class RawData_fusion:
     """
     Dataclass for Raw Fusion Data
     contsisting of Name _name
@@ -62,11 +62,11 @@ class RawData:
     def get_group_attr(self):
         return self._group_attr
     
-    def convert_to_rawdata(self,nd_array):
-        convert_nd_to_rawdata(nd_array,self)
+    def convert_to_rawdata_fusion(self,nd_array):
+        convert_nd_to_rawdata_fusion(nd_array,self)
 
 
-class HDF5:
+class HDF5_fusion:
     """
     HDF5 utils, includes, request special dataset 
     
@@ -86,7 +86,7 @@ class HDF5:
         if not self._file:
             raise KeyError(f"Opening of {filename!s} failed")
         
-    def getaxis(self, axis:str):
+    def getsignal(self, axis:str):
         """
         Request a set of raw data (time, error ,data array)
         
@@ -99,7 +99,7 @@ class HDF5:
             Collected like: file_object[axis]
 
             Therefore axis values may include / to specify sub elements
-            in the HDF5 heirarchy. 
+            in the HDF5 hierarchy. 
             
             We query for the different entities like errors, data, and times
 
@@ -107,7 +107,7 @@ class HDF5:
         ----------
         A raw data object
         """
-        raw_data = RawData(axis)
+        raw_data = RawData_fusion(axis)
         try:
            raw_data.set_data(self._file.get(axis+'/data')[()])
         except:
@@ -151,7 +151,7 @@ class HDF5:
 #Needed because of a potential bug in adios. data can't be sent in a 1d array and afterwards needs to be converted back
 # this is very buggy as I assume that if it's a 1xelements array it's [time] 2xelements it's [time,data] 3xelements it's [time,data,error]
 # this is only a temporary fix as ideally the data should be sent seperately
-def convert_nd_to_rawdata(recarray, raw_data_object:RawData):
+def convert_nd_to_rawdata_fusion(recarray, raw_data_object:RawData_fusion):
     shape = recarray.shape
     if shape[0] == 3:   
         raw_data_object.set_time(recarray[0,:])

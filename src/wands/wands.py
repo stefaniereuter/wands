@@ -1,5 +1,5 @@
 import requests
-from pathlib import Path
+#from pathlib import Path
 from .wan import WandsWAN
 from .data_cache import DataCache
 
@@ -20,7 +20,7 @@ class Wands:
         }
 
         self._webaddress = webaddress
-        self.dataCache = DataCache(Path(data_cache_path))
+        self.dataCache = DataCache(data_cache_path)
 
     def cache_location(self):
         return self.dataCache.path_str()

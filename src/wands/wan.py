@@ -4,7 +4,7 @@ import numpy as np
 import warnings
 import adios2
 from .adios import AdiosObject
-from .datahub import RawData
+from .datahub import RawData_fusion
 
 #maybe add a counter for number of declared io. To finalize adiosobject in the sense if all declared Io are finalized adios_io can be reset to None. ToBeDiscussed
 class WandsWAN:
@@ -47,7 +47,7 @@ class WandsWAN:
 
     def send(self, eng_name:str, var_name:str, data):
         """
-        Send data via adios. Currently supported ndarray or RawData
+        Send data via adios. Currently supported ndarray or RawData_fusion
 
         Parameters
         -----------
@@ -67,8 +67,8 @@ class WandsWAN:
         """
         if isinstance(data,np.ndarray):
             self.send_array(eng_name,var_name,data)
-        if isinstance(data,RawData):
-            self.send_rawdata(eng_name,var_name,data)
+        if isinstance(data,RawData_fusion):
+            self.send_rawdata_fusion(eng_name,var_name,data)
 
 
     def send_array(self, eng_name:str, var_name:str, data:np.ndarray):
@@ -178,7 +178,7 @@ class WandsWAN:
 
     def receive(self, request, engine_name = "WAN"):
         """
-        Send data via adios. Currently supported ndarray or RawData
+        Send data via adios. Currently supported ndarray or RawData_fusion
 
         Parameters
         -----------
@@ -260,7 +260,7 @@ class WandsWAN:
 
 
       
-    def receive_list_save_only(self, eng_name:str, variable_list:list[str], path:str, filename:str, link = "recsave"):
+    def receive_list_save_only(self, eng_name:str, variable_list:list[str], path:str, filename:str, link = "receive"):
         """
         Receive Data
 
@@ -382,7 +382,7 @@ class WandsWAN:
     #     #print(f"after close \n {data!s}")
     #     return data_dict
 
-    def send_rawdata(self, eng_name:str, var_name:str, data:RawData):
+    def send_rawdata_fusion(self, eng_name:str, var_name:str, data:RawData_fusion):
         """
         Send Array Data in one step
 
@@ -431,7 +431,7 @@ class WandsWAN:
 
         self.send_array(eng_name,var_name,np.array(sendmatrix))
 
-    def send_rawdata_list(self, eng_name:str, rd_list:list[RawData]):
+    def send_rawdata_fusion_list(self, eng_name:str, rd_list:list[RawData_fusion]):
         """
         Send Array Data in one step
         Parameters

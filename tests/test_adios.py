@@ -15,8 +15,8 @@ def test_init():
     }
     obj = AdiosObject(link = "testIO1", engine="Dataman",parameters=params)
     assert obj is not None
-    assert obj.get_engine() is "Dataman"
-    assert obj.get_link() is "testIO1"
+    assert obj.get_engine() == "Dataman"
+    assert obj.get_link() == "testIO1"
     assert obj.get_IO() is not None
     assert obj.get_parameters() is params
     assert type(obj.get_adios()) is adios2.adios2.ADIOS
@@ -43,8 +43,8 @@ def test_init_seperateParameters():
     obj2 = AdiosObject(link = "testIO2", engine="Dataman")
     obj2.set_parameters(params)
     assert obj2 is not None
-    assert obj2.get_engine() is "Dataman"
-    assert obj2.get_link() is "testIO2"
+    assert obj2.get_engine() == "Dataman"
+    assert obj2.get_link() == "testIO2"
     assert obj2.get_IO() is not None
     assert obj2.get_parameters() is params
     #assert obj2.getIPAddress() == "0.0.0.3"

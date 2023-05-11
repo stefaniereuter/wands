@@ -41,7 +41,8 @@ signals = ["/xmc/XMC/ACQ196_143/CH01/data",
 
 # filename = "small_test_data.h5"
 # signals = ["signal1/data"]
-local_path = "/home/sr2003/rds/rds-hpc-support-5mCMIDBOkPU/sr2003/UKAEA/wands_cache"
+#local_path = "/home/sr2003/rds/rds-hpc-support-5mCMIDBOkPU/sr2003/UKAEA/wands_cache"
+local_path = "/home/stefanie/work/adios/adiosnetwork/local_cache"
               
 wo = Wands(local_path, Port="12345")
 print(f"exampelwands {type(signals)}")

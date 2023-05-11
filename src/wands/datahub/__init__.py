@@ -1,4 +1,4 @@
 #* # noqa
 from .random_util import RandomData # noqa
-from .hdf_util import HDF5, RawData
+from .hdf_util import HDF5_fusion, RawData_fusion
 #from ..data_cache import DataCache
