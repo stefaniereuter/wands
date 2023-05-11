@@ -1,2 +1,17 @@
 *.swp
 *.h5
+data/
+adiosnetworkvenv
+adios2.9gittest
+plots/
+__pycache__
+*.egg-info
+README_files/
+README.html
+.coverage
+*venv/
+local_cache/
+build/
+bash-env.sh
+bash-env_adios29.sh
+.vscode

@@ -1,8 +1,8 @@
+from typing import Iterable
+
 import numpy as np
 import adios2
 import h5py
-
-from typing import Iterable
 
 
 class ADIOSData:
@@ -17,6 +17,8 @@ class ADIOSData:
     _io = None
     _link = None
     _engine = None
+
+    # __slots__ = ["_adios", "_parameters", "_io", "_link", "_engine"]
 
     def __init__(self, link: str, engine="Dataman", **parameters):
         """
@@ -34,7 +36,7 @@ class ADIOSData:
         self._link = link
         self._engine = engine
 
-        self._io = adios.DeclareIO(self._link)
+        self._io = self._adios.DeclareIO(self._link)
         self._io.SetEngine(self._engine)
         if parameters:
             self._parameters = parameters

@@ -1,0 +1,36 @@
+[build-system]
+requires = [
+    "setuptools >= 64.0.0",
+    "setuptools-scm"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wands"
+authors = [
+    {name = "Stefanie Reuter", email = "sr2003@cam.ac.uk"},
+    {name = "Toby James", email = "toby.james@ukaea.uk"},
+]
+description = "Wide Area Network Data Stream"
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = []
+license = {file = "LICENCE"}
+version = "0.0.1"
+dependencies = [
+    "numpy",
+    "mpi4py >= 3.1.4",
+    # "adios2 >= 2.8.3", # Disabled because conda-installed adios2
+                         # does not provide dist-info, making it impossible
+                         # for pip to find the package
+    "pytest >= 7.2.1",
+    "pytest-cov",
+    "pylint",
+    "h5py",
+    "requests",
+]
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
