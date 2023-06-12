@@ -9,7 +9,6 @@ from wands import DataCache
 def test_init():
     #current_dir = os.getcwd()
     current_dir  = os.path.dirname(os.path.abspath(__file__))
-    print(current_dir)
     cache_dir = current_dir+"/tests/test_cache"
     obj = DataCache(cache_dir)
     assert obj is not None
@@ -22,7 +21,6 @@ def test_init():
 def test_init2():
     #current_dir = os.getcwd()
     current_dir  = os.path.dirname(os.path.abspath(__file__))
-    print(current_dir)
     cache_dir = current_dir+"/tests/test_cache"
     obj = DataCache(Path(cache_dir))
     assert obj is not None
@@ -33,16 +31,12 @@ def test_init2():
     Path(cache_dir).rmdir()
    
 def test_init3():
-    #current_dir = os.getcwd()
-    current_dir  = os.path.dirname(os.path.abspath(__file__))
-    print(current_dir)
     cache_dir = 1234
     with pytest.raises(TypeError):
         obj = DataCache(cache_dir)
     
 def test_write_wrong_datatype():
     current_dir = os.getcwd()
-    print(current_dir)
     cache_dir = current_dir+"/tests/test_cache"
     obj = DataCache(cache_dir)
     testlist = []
@@ -51,7 +45,6 @@ def test_write_wrong_datatype():
 
 def test_write_empty_dict():
     current_dir = os.getcwd()
-    print(current_dir)
     cache_dir = current_dir+"/tests/test_cache"
     obj = DataCache(cache_dir)
     testdict = {}
@@ -85,7 +78,6 @@ def test_datacache():
 
 def test_datacache2():
     current_dir = os.getcwd()
-    print(current_dir)
     cache_dir = current_dir+"/tests/test_cache"
     obj = DataCache(cache_dir)
     testdict = {}
