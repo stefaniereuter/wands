@@ -1,14 +1,13 @@
 """
     Adios access api
 """
-#for now numpy import 
-#import numpy as np
-#import warnings
+# for now numpy import
+# import numpy as np
+# import warnings
 import adios2
 
 
-
-#Adios  object (only one per application) therefore a global variable within this module TODO rename to adios
+# Adios  object (only one per application) therefore a global variable within this module TODO rename to adios
 
 adios_io = None
 
@@ -20,7 +19,8 @@ class AdiosObject:
     _engine
     _parameters
     """
-    def __init__(self, link:str,engine:str,parameters = None):
+
+    def __init__(self, link: str, engine: str, parameters=None):
         # only call once
         global adios_io
         if adios_io is None:
@@ -32,7 +32,7 @@ class AdiosObject:
         except ValueError as ex:
             try:
                 self._io = adios_io.AtIO(self._link)
-            except:  
+            except:
                 raise ValueError("Declare IO failed") from ex
         try:
             self._io.SetEngine(self._engine)
@@ -46,18 +46,19 @@ class AdiosObject:
             self.set_parameters(self._parameters)
         else:
             self._parameters = None
-        
+
     def close(self):
         self._io.FlushAll()
         self._io.RemoveAllVariables()
         self._io.RemoveAllAttributes()
         adios_io.RemoveIO(self._link)
+
     def __str__(self):
         """
         Retruns
         String to describe IO Object
         """
-        new_line = '\n'
+        new_line = "\n"
         return f"Declared IO Name: {self._link} {new_line}Engine: {self._engine}{new_line}Set Parameters: {self._parameters}{new_line}"
 
     def set_parameters(self, parameters) -> None:
@@ -73,42 +74,44 @@ class AdiosObject:
         -------
         None
         """
-        #todo consider checking if parameters are usefull or test what happens
+        # todo consider checking if parameters are usefull or test what happens
         # if for example Transportmode = fast is misspelled
-        #print(type(parameters))
+        # print(type(parameters))
         self._parameters = parameters
         self._io.SetParameters(parameters)
-    
+
     def get_parameters(self):
         return self._parameters
 
     def get_adios(self):
         return adios_io
-    
+
     def get_engine(self):
         return self._engine
-    
+
     def get_IO(self):
         return self._io
-    
+
     def get_link(self):
         return self._link
-    
+
     def get_avail_attributes(self):
         return self._io.AvailableAttributes()
-    
+
     def get_avail_variables(self):
         return self._io.AvailableVariables()
-    
+
     def print_info(self):
         print(f"Name: {self.get_link()!s}")
         print(f"Engine: {self.get_engine()!s}")
         print(f"Parameters: {self.get_parameters()!s}")
         print(f"Variables: {self.get_avail_variables()!s}")
         print(f"Attributes: {self.get_avail_attributes()!s}")
-    
+
     # def remove_all_variables(self):
     #     self.RemoveAllVariables()
+
+
 # #move those functions out of the class
 #     def getIPAddress(self):
 #         if self._parameters["IPAddress"] is not None:
@@ -133,5 +136,3 @@ class AdiosObject:
 #             return self._parameters["TransportMode"]
 #         else:
 #             raise ValueError(" Transportmode not specified yet")
-        
-
