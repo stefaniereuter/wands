@@ -14,7 +14,7 @@ class Wands:
         self,
         data_cache_path: str,
         IPAddress="127.0.0.1",
-        Port="8081",
+        Port="12345",
         Timeout="30",
         TransportMode="reliable",
         RendezvousReaderCount="1",

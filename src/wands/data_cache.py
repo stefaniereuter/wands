@@ -169,6 +169,7 @@ class DataCache:
                                         signal
                                     )
                                     if variable:
+                                        # print(variable.Type())
                                         data = np.zeros(
                                             variable.Shape(), dtype=variable.Type()
                                         )
