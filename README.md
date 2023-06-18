@@ -85,13 +85,12 @@ ssh -R 12345:localhost:12345 -o ProxyJump=<login-node> <CSD3ID>@<IP from nslooku
 ssh -L 12345:localhost:12345 -o ProxyJump=<login-node> <CSD3ID>@<IP from nslookup>
 ```
   
-
-    - Run server
+## Run server
 ```bash
 cd <server/build> //or any other build directory chosen
 ./wands_server
 ```
-    - Client code example 
+## Client code example 
 ```python
 from wands import Wands
 
