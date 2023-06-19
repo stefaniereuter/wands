@@ -4,6 +4,10 @@
 #include <H5Cpp.h>
 #include <numeric>
 
+#include <boost/program_options.hpp>
+
+namespace opt = boost::program_options;
+
 crow::response ping() {
     crow::json::wvalue msg;
     msg["api"] = "wands";
@@ -102,12 +106,14 @@ void send_data(int port, std::vector<ReturnData> return_data) {
     engine.Close();
 }
 
-crow::response data(const crow::request& req) {
+crow::response data(opt::variables_map& vm, const crow::request& req) {
 
     crow::logger::setLogLevel(crow::LogLevel::Debug);
     auto data = crow::json::load(req.body);
 
     std::string uri_string;
+    std::string data_location;
+    data_location = vm["data_location"].as<std::string>();
     std::vector<std::string> signal_list;
 
     // POST data
@@ -262,8 +268,17 @@ int main()
 {
     crow::SimpleApp app;
 
+
+    opt::options_description desc("Options");
+    desc.add_options()
+        ("port", opt::value<int>(), "Port to listen on")
+        ("data_location", opt::value<std::string>(), "Location of HDF5 data to serve");
+    opt::variables_map vm;
+    opt::store(opt::parse_config_file<char>("wandserver.cfg", desc), vm);
+    opt::notify(vm);
+
     CROW_ROUTE(app, "/")(ping);
-    CROW_ROUTE(app, "/data").methods("POST"_method)(data);
+    CROW_ROUTE(app, "/data").methods("POST"_method)([&vm](const crow::response& req){data(vm, req);});
 
     app.port(8080).run();
     for (auto& thread : threads) {
