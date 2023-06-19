@@ -156,19 +156,19 @@ class HDF5_fusion:
         return raw_data
 
 
-# Needed because of a potential bug in adios. data can't be sent in a 1d array and afterwards needs to be converted back
-# this is very buggy as I assume that if it's a 1xelements array it's [time] 2xelements it's [time,data] 3xelements it's [time,data,error]
-# this is only a temporary fix as ideally the data should be sent seperately
-def convert_nd_to_rawdata_fusion(recarray, raw_data_object: RawData_fusion):
-    shape = recarray.shape
-    if shape[0] == 3:
-        raw_data_object.set_time(recarray[0, :])
-        raw_data_object.set_data(recarray[1, :])
-        raw_data_object.set_errors(recarray[2, :])
-    elif shape[0] == 2:
-        raw_data_object.set_time(recarray[0, :])
-        raw_data_object.set_data(recarray[1, :])
-    elif shape[0] == 1:
-        raw_data_object.set_time(recarray[0, :])
-    else:
-        raise ValueError("unsupported shape of data array")
+# # Needed because of a potential bug in adios. data can't be sent in a 1d array and afterwards needs to be converted back
+# # this is very buggy as I assume that if it's a 1xelements array it's [time] 2xelements it's [time,data] 3xelements it's [time,data,error]
+# # this is only a temporary fix as ideally the data should be sent seperately
+# def convert_nd_to_rawdata_fusion(recarray, raw_data_object: RawData_fusion):
+#     shape = recarray.shape
+#     if shape[0] == 3:
+#         raw_data_object.set_time(recarray[0, :])
+#         raw_data_object.set_data(recarray[1, :])
+#         raw_data_object.set_errors(recarray[2, :])
+#     elif shape[0] == 2:
+#         raw_data_object.set_time(recarray[0, :])
+#         raw_data_object.set_data(recarray[1, :])
+#     elif shape[0] == 1:
+#         raw_data_object.set_time(recarray[0, :])
+#     else:
+#         raise ValueError("unsupported shape of data array")
