@@ -155,7 +155,7 @@ crow::response data(opt::variables_map& vm, const crow::request& req) {
     try {
        // H5::H5File hdf5("/home/sr2003/rds/rds-hpc-support-5mCMIDBOkPU/sr2003/UKAEA/Datafiles/" + uri_string, H5F_ACC_RDONLY);
         //H5::H5File hdf5("/home/stefanie/work/adios/adiosnetwork/data/" + uri_string, H5F_ACC_RDONLY);
-        H5::H5File hdf5("/home/stefanie/work/adios/adiosnetwork/tests/test_data/" + uri_string, H5F_ACC_RDONLY);
+        H5::H5File hdf5(data_location + uri_string, H5F_ACC_RDONLY);
         CROW_LOG_DEBUG << "file"<< hdf5.getFileName();
         std::vector<ReturnData> return_data;
 
@@ -278,7 +278,7 @@ int main()
     opt::notify(vm);
 
     CROW_ROUTE(app, "/")(ping);
-    CROW_ROUTE(app, "/data").methods("POST"_method)([&vm](const crow::response& req){data(vm, req);});
+    CROW_ROUTE(app, "/data").methods("POST"_method)([&vm](const crow::request& req){data(vm, req);});
 
     app.port(8080).run();
     for (auto& thread : threads) {
