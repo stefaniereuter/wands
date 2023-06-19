@@ -14,7 +14,7 @@ axis = "/xmc/XMC/ACQ196_143/CH01"
 h5obj = HDF5(hdf5f)
 rdo = h5obj.getaxis(axis)
 
-adios_s = AdiosWands(link="Sender",parameters=params)
+adios_s = AdiosWands(link="Sender", parameters=params)
 adios_s.send("IOS", "testdata", rdo)
 
 print(rdo)
