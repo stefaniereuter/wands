@@ -278,7 +278,7 @@ int main()
     opt::notify(vm);
 
     CROW_ROUTE(app, "/")(ping);
-    CROW_ROUTE(app, "/data").methods("POST"_method)([&vm](const crow::request& req){data(vm, req);});
+    CROW_ROUTE(app, "/data").methods("POST"_method)([&vm](const crow::request& req){return data(vm, req);});
 
     app.port(8080).run();
     for (auto& thread : threads) {
