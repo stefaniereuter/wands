@@ -37,7 +37,7 @@ To install wands it is recommended to create a virtual environment and use pip t
 ```bash
 python -m venv <pip_env_name>
 source <pip_env_name>/bin/activate
-pip install -e .
+python -m pip install -e .
 ```
 
 It is possible to build and run only the cpp server on the data site. This means that the last pip environment step ins't needed. 
