@@ -28,7 +28,7 @@ spack install
 
 HDF5 and Boost are needed for for the CPP server and can, for example also be installed in the spack environment. 
 ```bash
-spack add hdf5
+spack add hdf5+hl+cxx
 spack add boost
 spack install
 ```
