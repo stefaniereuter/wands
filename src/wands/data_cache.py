@@ -1,4 +1,5 @@
 import adios2
+import re
 import numpy as np
 from pathlib import Path
 from .adios import AdiosObject
@@ -113,13 +114,9 @@ class DataCache:
         --------
 
         """
-        # print( type(filename.replace('.h5','.bp')))
-        # print(self._path)
-        # print(type(self._path))
-        bpfilename_path = self._path / filename.replace(".h5", ".bp")
-        # print(type(bpfilename_path))
-        # print(f"check av: data type data_list: {type(data_list)}")
-        # print(f"Check availability")
+
+        bpfilename_path = self._path / re.sub(".\w+$", ".bp", filename)
+
         local_list = []
         remote_list = []
         # print(f"trying to open {bpfilename_path}")
