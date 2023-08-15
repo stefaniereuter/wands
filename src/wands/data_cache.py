@@ -62,7 +62,7 @@ class DataCache:
             raise TypeError("data_dict is empty")
 
         # modify string to delete .hdf5 with string find
-        bpfilename_path = self._path / filename.replace(".h5", ".bp")
+        bpfilename_path = self._path / re.sub("\.\w+$", ".bp", filename)
         logger.info(bpfilename_path)
         writer = self._adob.get_IO().Open(f"{bpfilename_path!s}", adios2.Mode.Append)
 
@@ -145,7 +145,7 @@ class DataCache:
         return (remote_list, local_list)
 
     def load_from_cache(self, filename: str, local_list: list):
-        bpfilename_path = self._path / filename.replace(".h5", ".bp")
+        bpfilename_path = self._path / re.sub("\.\w+$", ".bp", filename)
         logger.debug(f"beginning of cache: {local_list!s}")
         # self._adob.print_info()
         local_dict = {}

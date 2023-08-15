@@ -1,5 +1,6 @@
 # for now numpy import
 import numpy as np
+import re
 import adios2
 from .adios import AdiosObject
 from .datahub import RawData_fusion
@@ -291,7 +292,7 @@ class WandsWAN:
         logger.info(
             f"STATUS: receiving data from remote not returned just saved in local data cache"
         )
-        bpfilename = filename.replace(".h5", ".bp")  # TODO fix see issue #14
+        bpfilename = re.sub("\.\w+$", ".bp", filename)
         bpfilename_path = f"{path}/{bpfilename}"
 
         reader = self._adob.get_IO().Open(eng_name, adios2.Mode.Read)
