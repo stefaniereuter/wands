@@ -3,6 +3,7 @@ import requests
 # from pathlib import Path
 from .wan import WandsWAN
 from .data_cache import DataCache
+from logger import logger
 
 
 class Wands:
@@ -43,7 +44,8 @@ class Wands:
         # only for performance measurement from time import time
         #
         # remove locally available datasets from list
-        # only for performance measurement print(f"request: type datalist: {type(data_list)}")
+        # only for performance measurement
+        logger.debug(f"request: type datalist: {type(data_list)}")
 
         data_from_remote = {}
         # only for performance measurement timereq = time()
@@ -60,8 +62,8 @@ class Wands:
             filename=filename, local_list=local_list
         )
         # only for performance measurement timedatalocal = time()
-        # print(f"Signals found locally: {local_list}")
-        # print(f"Signals to be requested remotely: {remote_list}")
+        logger.info(f"Signals found locally: {local_list}")
+        logger.info(f"Signals to be requested remotely: {remote_list}")
         # fetch data remotely
         if remote_list:
             data = {
@@ -69,15 +71,21 @@ class Wands:
                 "signals": remote_list,
             }
             response = requests.post(self._webaddress, json=data)
-            print(response.status_code)
-            print(response.json())
+            logger.info(response.status_code)
+            logger.info(response.json())
             wandsWAN_obj = WandsWAN(parameters=self._Adiosparams)
 
             data_from_remote = wandsWAN_obj.receive(remote_list)
             # only for performance measurement timeremote = time()
             self.dataCache.write(filename=filename, data_dict=data_from_remote)
             # only for performance measurement timewrite = time()
-        # only for performance measurement print(f"Timings:\n check av = {timecheckav-timereq}\n t_lfc = {timedatalocal-timecheckav}\n ")
+        # only for performance measurement
+        logger.debug(
+            f"Timings:\n check av = {timecheckav-timereq}\n t_lfc = {timedatalocal-timecheckav}\n "
+        )
         # only for performance measurement if remote_list:
-        # only for performance measurement       print(f"t_getremote = {timeremote-timedatalocal}\n t_toDB = {timewrite-timeremote}")
+        # only for performance measurement
+        logger.debug(
+            f"t_getremote = {timeremote-timedatalocal}\n t_toDB = {timewrite-timeremote}"
+        )
         return data_from_remote | data_from_cache
