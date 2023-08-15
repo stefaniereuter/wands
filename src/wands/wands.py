@@ -80,8 +80,12 @@ class Wands:
             self.dataCache.write(filename=filename, data_dict=data_from_remote)
             # only for performance measurement timewrite = time()
         # only for performance measurement
-        logger.debug(f"Timings:\n check av = {timecheckav-timereq}\n t_lfc = {timedatalocal-timecheckav}\n ")
+        logger.debug(
+            f"Timings:\n check av = {timecheckav-timereq}\n t_lfc = {timedatalocal-timecheckav}\n "
+        )
         # only for performance measurement if remote_list:
         # only for performance measurement
-        logger.debug(f"t_getremote = {timeremote-timedatalocal}\n t_toDB = {timewrite-timeremote}")
+        logger.debug(
+            f"t_getremote = {timeremote-timedatalocal}\n t_toDB = {timewrite-timeremote}"
+        )
         return data_from_remote | data_from_cache

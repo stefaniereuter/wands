@@ -6,6 +6,7 @@ from .adios import AdiosObject
 
 from logger import logger
 
+
 class DataCache:
     """
     Use the received Data to build a local database
@@ -160,7 +161,9 @@ class DataCache:
                         stepStatus = reader.BeginStep()
                         logger.debug(stepStatus)
                         if stepStatus == adios2.StepStatus.OK:
-                            logger.debug(f"Current Step: {reader.CurrentStep()!s} reader Steps= {reader.Steps()!s} local dict = {local_dict!s} ")
+                            logger.debug(
+                                f"Current Step: {reader.CurrentStep()!s} reader Steps= {reader.Steps()!s} local dict = {local_dict!s} "
+                            )
                             for signal in local_list:
                                 if signal not in local_dict:
                                     variable = self._adob.get_IO().InquireVariable(

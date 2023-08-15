@@ -247,7 +247,9 @@ class WandsWAN:
                         logger.debug(f"data before Get: \n{data!s}")
                         reader.Get(recvar, data, adios2.Mode.Deferred)
                         data_dict[name] = data
-                        logger.debug(f"data right after get This might be not right as data might not have been sent yet \n: {data!s}")
+                        logger.debug(
+                            f"data right after get This might be not right as data might not have been sent yet \n: {data!s}"
+                        )
                         # currentStep = reader.CurrentStep()
                     else:
                         raise ValueError(f"InquireVariable failed {name!s}")
@@ -326,7 +328,9 @@ class WandsWAN:
                             name, data, bufshape, start, bufshape, adios2.ConstantDims
                         )
                         writer.Put(writebuffer, data, adios2.Mode.Deferred)
-                        logger.debug(f"data right after get This might be not right as data might not have been sent yet \n: {data!s}")
+                        logger.debug(
+                            f"data right after get This might be not right as data might not have been sent yet \n: {data!s}"
+                        )
                         # currentStep = reader.CurrentStep()
                     else:
                         raise ValueError(f"InquireVariable failed {name!s}")
@@ -546,7 +550,9 @@ class WandsWAN:
                     data = np.ones(bufshape, dtype=recvar.Type().replace("_t", ""))
                     logger.debug(f"data before Get: \n{data!s}")
                     reader.Get(recvar, data, adios2.Mode.Deferred)
-                    logger.debug(f"data right after get This might be not right as data might not have been sent yet \n: {data!s}")
+                    logger.debug(
+                        f"data right after get This might be not right as data might not have been sent yet \n: {data!s}"
+                    )
                     # currentStep = reader.CurrentStep()
                 else:
                     raise ValueError(f"InquireVariable failed {variable_name!s}")
