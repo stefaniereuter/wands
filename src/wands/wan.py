@@ -4,6 +4,7 @@ import warnings
 import adios2
 from .adios import AdiosObject
 from .datahub import RawData_fusion
+from .data_cache import DataCache
 
 
 # maybe add a counter for number of declared io. To finalize adiosobject in the sense if all declared Io are finalized adios_io can be reset to None. ToBeDiscussed
@@ -283,8 +284,6 @@ class WandsWAN:
         -------
 
         """
-
-        from .data_cache import DataCache
 
         print(
             f"STATUS: receiving data from remote not returned just saved in local data cache"
