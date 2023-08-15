@@ -13,7 +13,7 @@ import re
 # Allow set the directory to write the log files in with the environment
 # variable WANDSLOGPATH
 # Default to CWD
-if LOGPATH:=os.environ.get("WANDSLOGPATH"):
+if LOGPATH := os.environ.get("WANDSLOGPATH"):
     LOGPATH = Path(LOGPATH)
 else:
     LOGPATH = Path(".")
@@ -26,12 +26,11 @@ pattern = LOGFILE + "(\d*)" + EXT
 
 # Increment the n value
 for f in os.listdir(LOGPATH):
-    if res:=re.search(pattern, f):
+    if res := re.search(pattern, f):
         if int(res.group(1)) > n:
             n = int(res.group(1))
 
-logging.basicConfig(filename=str(LOGPATH/(LOGFILE+n+EXT)),
-                    level=logging.DEBUG)
+logging.basicConfig(filename=str(LOGPATH / (LOGFILE + n + EXT)), level=logging.DEBUG)
 
 logger = logging.getLogger("WANDS")
 
@@ -40,8 +39,10 @@ class _LoggingFilter(logging.Filter):
     def __init__(self, level: int):
         super().__init__()
         self._level = level
+
     def filter(self, record: logging.LogRecord) -> bool:
         return record.levelno == self._level
+
 
 # INFO to stdout
 outhandler = logging.StreamHandler(sys.stdout)
