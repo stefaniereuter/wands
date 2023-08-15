@@ -1,6 +1,5 @@
 # for now numpy import
 import numpy as np
-import warnings
 import adios2
 from .adios import AdiosObject
 from .datahub import RawData_fusion
