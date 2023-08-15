@@ -1,9 +1,12 @@
 # for now numpy import
 import numpy as np
-import warnings
+import re
 import adios2
 from .adios import AdiosObject
 from .datahub import RawData_fusion
+from .data_cache import DataCache
+
+from logger import logger
 
 
 # maybe add a counter for number of declared io. To finalize adiosobject in the sense if all declared Io are finalized adios_io can be reset to None. ToBeDiscussed
@@ -30,7 +33,7 @@ class WandsWAN:
         # global adios_io
         # if adios_io is None:
         #     adios_io = adios2.ADIOS()
-        print(parameters)
+        logger.info(parameters)
         self._adob = AdiosObject(link, engine, parameters)
         # add requests....
 
@@ -93,11 +96,11 @@ class WandsWAN:
         # count – local dimension
         # constantDims – true: shape, start, count won’t change, false: shape, start, count will change after definition
         shape = data.shape
-        # print(f"shape in send: {shape!s}")
+        logger.debug(f"shape in send: {shape!s}")
         count = shape
-        # print(f"count in send {count!s}")
+        logger.debug(f"count in send {count!s}")
         start = (0,) * len(shape)
-        # print(f"start in send {start!s}")
+        logger.debug(f"start in send {start!s}")
 
         sendbuffer = self._adob.get_IO().DefineVariable(
             var_name, data, shape, start, count, adios2.ConstantDims
@@ -162,11 +165,11 @@ class WandsWAN:
         # for var_name ,sendbuf in defined_vars.items():
         for var_name, data in data_dict.items():
             shape = data.shape
-            # (f"shape in send: {shape!s}")
+            logger.debug(f"shape in send: {shape!s}")
             count = shape
-            # print(f"count in send {count!s}")
+            logger.debug(f"count in send {count!s}")
             start = (0,) * len(shape)
-            # print(f"start in send {start!s}")
+            logger.debug(f"start in send {start!s}")
             sendbuffer = self._adob.get_IO().DefineVariable(
                 var_name, data, shape, start, count, adios2.ConstantDims
             )
@@ -221,31 +224,33 @@ class WandsWAN:
         -------
         data
         """
-        print(f"STATUS: receiving data from remote")
+        logger.info(f"STATUS: receiving data from remote")
         data_dict = {}
         reader = self._adob.get_IO().Open(eng_name, adios2.Mode.Read)
-        print(f"Status: Handshake successfull")
+        logger.info(f"Status: Handshake successfull")
         while True:
             stepStatus = reader.BeginStep()
-            # print(f"Stepstatus {stepStatus!s}")
+            logger.debug(f"Stepstatus {stepStatus!s}")
             if stepStatus == adios2.StepStatus.OK:
                 # inquire for variable
                 for name in variable_list:
-                    # print(f"getting {name}")
+                    logger.debug(f"getting {name}")
                     recvar = self._adob.get_IO().InquireVariable(name)
-                    # print(f"Variable inqurired {recvar!s}")
+                    logger.debug(f"Variable inqurired {recvar!s}")
                     if recvar:
                         # determine the shape of the data that will be sent
                         bufshape = recvar.Shape()
                         # allocate buffer for now numpy
                         # replace("_t","") necessary because
-                        # print(f"Datatype {recvar.Type()}")
+                        logger.debug(f"Received datatype {recvar.Type()}")
                         data = np.ones(bufshape, dtype=recvar.Type().replace("_t", ""))
-                        # print(f" in receive data {data!s}")
-                        # print(f"data before Get: \n{data!s}")
+                        logger.debug(f" in receive data {data!s}")
+                        logger.debug(f"data before Get: \n{data!s}")
                         reader.Get(recvar, data, adios2.Mode.Deferred)
                         data_dict[name] = data
-                        # print(f"data right after get This might be not right as data might not have been sent yet \n: {data!s}")
+                        logger.debug(
+                            f"data right after get This might be not right as data might not have been sent yet \n: {data!s}"
+                        )
                         # currentStep = reader.CurrentStep()
                     else:
                         raise ValueError(f"InquireVariable failed {name!s}")
@@ -254,9 +259,9 @@ class WandsWAN:
             else:
                 raise StopIteration(f"next step failed to initiate {stepStatus!s}")
             reader.EndStep()
-            # print(f"After end step \n{data!s}")
+            logger.debug(f"After end step \n{data!s}")
         reader.Close()
-        # print(f"after close \n {data!s}")
+        logger.debug(f"after close \n {data!s}")
         return data_dict
 
     def receive_list_save_only(
@@ -284,12 +289,10 @@ class WandsWAN:
 
         """
 
-        from .data_cache import DataCache
-
-        print(
+        logger.info(
             f"STATUS: receiving data from remote not returned just saved in local data cache"
         )
-        bpfilename = filename.replace(".h5", ".bp")
+        bpfilename = re.sub("\.\w+$", ".bp", filename)
         bpfilename_path = f"{path}/{bpfilename}"
 
         reader = self._adob.get_IO().Open(eng_name, adios2.Mode.Read)
@@ -297,36 +300,38 @@ class WandsWAN:
         dc_obj = DataCache(path=path, link=link)
         writer = dc_obj._adob.get_IO().Open(bpfilename_path, adios2.Mode.Append)
 
-        print(f"Status: Handshake successfull")
+        logger.info(f"Status: Handshake successfull")
         while True:
             stepStatus = reader.BeginStep()
-            # print(f"Stepstatus {stepStatus!s}")
+            logger.debug(f"Stepstatus {stepStatus!s}")
             if stepStatus == adios2.StepStatus.OK:
                 # inquire for variable
                 writer.BeginStep()
                 for name in variable_list:
-                    # print(f"getting {name}")
+                    logger.debug(f"getting {name}")
                     recvar = self._adob.get_IO().InquireVariable(name)
-                    # print(f"Variable inqurired {recvar!s}")
+                    logger.debug(f"Variable inqurired {recvar!s}")
                     if recvar:
                         # determine the shape of the data that will be sent
                         bufshape = recvar.Shape()
                         # allocate buffer for now numpy
                         # replace("_t","") necessary because
-                        # print(f"Datatype {recvar.Type()}")
+                        logger.debug(f"Datatype {recvar.Type()}")
                         data = np.ones(bufshape, dtype=recvar.Type().replace("_t", ""))
-                        # print(f" in receive data {data!s}")
-                        # print(f"data before Get: \n{data!s}")
+                        logger.debug(f" in receive data {data!s}")
+                        logger.debug(f"data before Get: \n{data!s}")
                         reader.Get(recvar, data, adios2.Mode.Sync)
                         start = (0,) * len(bufshape)
                         if dc_obj._adob.get_IO().InquireVariable(name):
-                            print(f"Debug: variable {name} alrady in file")
+                            logger.info(f"Debug: variable {name} alrady in file")
                             continue
                         writebuffer = dc_obj._adob.get_IO().DefineVariable(
                             name, data, bufshape, start, bufshape, adios2.ConstantDims
                         )
                         writer.Put(writebuffer, data, adios2.Mode.Deferred)
-                        # print(f"data right after get This might be not right as data might not have been sent yet \n: {data!s}")
+                        logger.debug(
+                            f"data right after get This might be not right as data might not have been sent yet \n: {data!s}"
+                        )
                         # currentStep = reader.CurrentStep()
                     else:
                         raise ValueError(f"InquireVariable failed {name!s}")
@@ -336,10 +341,10 @@ class WandsWAN:
                 raise StopIteration(f"next step failed to initiate {stepStatus!s}")
             writer.EndStep()
             reader.EndStep()
-            # print(f"After end step \n{data!s}")
+            logger.debug(f"After end step \n{data!s}")
         writer.Close()
         reader.Close()
-        # print(f"after close \n {data!s}")
+        logger.debug(f"after close \n {data!s}")
 
     # def receive_dict_arrays_multi_steps(self, eng_name:str, variable_list:list[str]):
     #     """
@@ -421,7 +426,7 @@ class WandsWAN:
         if time is not None:
             sendmatrix.append(time)
         else:
-            warnings.warn(
+            logger.warn(
                 f"could not retrieve time array for {var_name!s}, will not be sent"
             )
 
@@ -430,7 +435,7 @@ class WandsWAN:
         if data is not None:
             sendmatrix.append(data_array)
         else:
-            warnings.warn(
+            logger.warn(
                 f"could not retrieve data array for {var_name!s}, will not be sent"
             )
 
@@ -439,7 +444,7 @@ class WandsWAN:
         if error is not None:
             sendmatrix.append(error)
         else:
-            warnings.warn(
+            logger.warn(
                 f"could not retrieve error array for {var_name!s}, will not be sent"
             )
 
@@ -461,29 +466,29 @@ class WandsWAN:
         None
         """
         # defined_vars = self.define_variables(data_dict)
-        # print(f"sending raw list")
-        # print(rd_list)
+        logger.info(f"sending raw list")
+        logger.debug(rd_list)
         writer = self._adob.get_IO().Open(eng_name, adios2.Mode.Write)
         # name – unique variable identifier
         # shape – global dimension
         # start – local offset
         # count – local dimension
         # constantDims – true: shape, start, count won’t change, false: shape, start, count will change after definition
-        # print(f"opened ")
+        logger.debug(f"opened ")
 
         writer.BeginStep()
         # for var_name ,sendbuf in defined_vars.items():
         for rd in rd_list:
-            # print(rd)
+            logger.debug(rd)
             name = rd.get_name()
-            # print(f"Signal: {name}")
+            logger.debug(f"Signal: {name}")
             sendmatrix = []
             # send time if not None
             time = rd.get_time()
             if time is not None:
                 sendmatrix.append(time)
             else:
-                warnings.warn(
+                logger.warn(
                     f"could not retrieve time array for {name!s}, will not be sent"
                 )
 
@@ -492,19 +497,19 @@ class WandsWAN:
             if data is not None:
                 sendmatrix.append(data)
             else:
-                warnings.warn(
+                logger.warn(
                     f"could not retrieve data array for {name!s}, will not be sent"
                 )
 
             # self.send_array(eng_name,name,np.array(sendmatrix))
             nd_matrix = np.array(sendmatrix)
-            # print(f"type matrix {type(nd_matrix)!s}")
+            logger.debug(f"type matrix {type(nd_matrix)!s}")
             shape = nd_matrix.shape
-            # print(f"shape in send: {shape!s}")
+            logger.debug(f"shape in send: {shape!s}")
             count = shape
-            # print(f"count in send {count!s}")
+            logger.debug(f"count in send {count!s}")
             start = (0,) * len(shape)
-            # print(f"start in send {start!s}")
+            logger.debug(f"start in send {start!s}")
             sendbuffer = self._adob.get_IO().DefineVariable(
                 name, nd_matrix, shape, start, count, adios2.ConstantDims
             )
@@ -544,9 +549,11 @@ class WandsWAN:
                     # allocate buffer for now numpy Type() returns a cpp type e.g. int64_t
                     # replace("_t","") necessary because
                     data = np.ones(bufshape, dtype=recvar.Type().replace("_t", ""))
-                    # print(f"data before Get: \n{data!s}")
+                    logger.debug(f"data before Get: \n{data!s}")
                     reader.Get(recvar, data, adios2.Mode.Deferred)
-                    # print(f"data right after get This might be not right as data might not have been sent yet \n: {data!s}")
+                    logger.debug(
+                        f"data right after get This might be not right as data might not have been sent yet \n: {data!s}"
+                    )
                     # currentStep = reader.CurrentStep()
                 else:
                     raise ValueError(f"InquireVariable failed {variable_name!s}")
@@ -555,9 +562,9 @@ class WandsWAN:
             else:
                 raise StopIteration(f"next step failed to initiate {stepStatus!s}")
             reader.EndStep()
-            # print(f"After end step \n{data!s}")
+            logger.debug(f"After end step \n{data!s}")
         reader.Close()
-        # print(f"after close \n {data!s}")
+        logger.debug(f"after close \n {data!s}")
         return data
         # reader = self._io.Open(eng_name, adios2.Mode.Read)
         # recvar = self._io.InquireVariable(variable_name)
