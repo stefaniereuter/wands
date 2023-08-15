@@ -4,6 +4,7 @@ import numpy as np
 from pathlib import Path
 from .adios import AdiosObject
 
+from logger import logger
 
 class DataCache:
     """
@@ -61,22 +62,22 @@ class DataCache:
 
         # modify string to delete .hdf5 with string find
         bpfilename_path = self._path / filename.replace(".h5", ".bp")
-        # print(bpfilename_path)
+        logger.info(bpfilename_path)
         writer = self._adob.get_IO().Open(f"{bpfilename_path!s}", adios2.Mode.Append)
 
         writer.BeginStep()
         for var_name, data in data_dict.items():
             # Test if the variable already exists
             if self._adob.get_IO().InquireVariable(var_name):
-                print(f" Debug: variable {var_name!s} exists already")
+                logger.info(f" Debug: variable {var_name!s} exists already")
                 continue
 
             shape = data.shape
-            # print(f"shape in send: {shape!s}")
+            logger.debug(f"shape in send: {shape!s}")
             count = shape
-            # print(f"count in send {count!s}")
+            logger.debug(f"count in send {count!s}")
             start = (0,) * len(shape)
-            # print(f"start in send {start!s}")
+            logger.debug(f"start in send {start!s}")
             sendbuffer = self._adob.get_IO().DefineVariable(
                 var_name, data, shape, start, count, adios2.ConstantDims
             )
@@ -119,7 +120,7 @@ class DataCache:
 
         local_list = []
         remote_list = []
-        # print(f"trying to open {bpfilename_path}")
+        logger.info(f"trying to open {bpfilename_path}")
         if bpfilename_path.exists():
             reader = self._adob.get_IO().Open(f"{bpfilename_path!s}", adios2.Mode.Read)
             if reader:
@@ -132,7 +133,7 @@ class DataCache:
                         remote_list.append(signal)
             else:
                 # This should never happen since we checked before that the file exists
-                print(
+                logger.warn(
                     f"[WARNING] Even though the {bpfilename_path!s} exists WANDS was unable to open it. Requesting all datasets remotely"
                 )
                 remote_list = data_list
@@ -144,7 +145,7 @@ class DataCache:
 
     def load_from_cache(self, filename: str, local_list: list):
         bpfilename_path = self._path / filename.replace(".h5", ".bp")
-        # print(f"beginning of cache: {local_list!s}")
+        logger.debug(f"beginning of cache: {local_list!s}")
         # self._adob.print_info()
         local_dict = {}
         if local_list:
@@ -157,16 +158,16 @@ class DataCache:
 
                     while True:
                         stepStatus = reader.BeginStep()
-                        # print(stepStatus)
+                        logger.debug(stepStatus)
                         if stepStatus == adios2.StepStatus.OK:
-                            # print(f"Current Step: {reader.CurrentStep()!s} reader Steps= {reader.Steps()!s} local dict = {local_dict!s} ")
+                            logger.debug(f"Current Step: {reader.CurrentStep()!s} reader Steps= {reader.Steps()!s} local dict = {local_dict!s} ")
                             for signal in local_list:
                                 if signal not in local_dict:
                                     variable = self._adob.get_IO().InquireVariable(
                                         signal
                                     )
                                     if variable:
-                                        # print(variable.Type())
+                                        logger.debug(variable.Type())
                                         data = np.zeros(
                                             variable.Shape(), dtype=variable.Type()
                                         )
@@ -180,10 +181,10 @@ class DataCache:
                             )
 
                         reader.EndStep()
-                # print(f"call close next")
+                logger.debug(f"call close next")
                 reader.Close()
-                # print(f"{bpfilename_path!s} closed")
-                # print(local_list)
+                logger.info(f"{bpfilename_path!s} closed")
+                logger.debug(local_list)
             else:
                 raise ValueError(f" file {bpfilename_path} not found")
 
