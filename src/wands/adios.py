@@ -5,6 +5,7 @@
 # import numpy as np
 # import warnings
 import adios2
+from logger import logger
 
 
 # Adios  object (only one per application) therefore a global variable within this module TODO rename to adios
@@ -102,11 +103,11 @@ class AdiosObject:
         return self._io.AvailableVariables()
 
     def print_info(self):
-        print(f"Name: {self.get_link()!s}")
-        print(f"Engine: {self.get_engine()!s}")
-        print(f"Parameters: {self.get_parameters()!s}")
-        print(f"Variables: {self.get_avail_variables()!s}")
-        print(f"Attributes: {self.get_avail_attributes()!s}")
+        logger.info(f"Name: {self.get_link()!s}")
+        logger.info(f"Engine: {self.get_engine()!s}")
+        logger.info(f"Parameters: {self.get_parameters()!s}")
+        logger.info(f"Variables: {self.get_avail_variables()!s}")
+        logger.info(f"Attributes: {self.get_avail_attributes()!s}")
 
     # def remove_all_variables(self):
     #     self.RemoveAllVariables()
