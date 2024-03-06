@@ -3,6 +3,7 @@
 #include <adios2.h>
 #include <H5Cpp.h>
 #include <numeric>
+#include <algorithm>
 
 crow::response ping() {
     crow::json::wvalue msg;
@@ -41,7 +42,23 @@ struct ReturnData {
     std::vector<hsize_t> dims;
     std::string type;
 };
-
+struct Signal {
+    std::string name;
+    std::vector<hsize_t> shape;
+    std::vector<hsize_t> offset;
+};
+std::string jsonTypeToString(crow::json::type t) {
+    switch (t) {
+        case crow::json::type::Null: return "Null";
+        case crow::json::type::False: return "False";
+        case crow::json::type::True: return "True";
+        case crow::json::type::Number: return "Number";
+        case crow::json::type::String: return "String";
+        case crow::json::type::List: return "List";
+        case crow::json::type::Object: return "Object";
+        default: return "Unknown";
+    }
+}
 static std::vector<std::thread> threads;
 
 void send_data(int port, std::vector<ReturnData> return_data) {
@@ -108,9 +125,7 @@ crow::response data(const crow::request& req) {
     auto data = crow::json::load(req.body);
 
     std::string uri_string;
-    std::vector<std::string> signal_list;
-
-    // POST data
+    std::vector<Signal> signal_list;    // POST data
     // - uri [STRING]
     // - signals [LIST] 
 
@@ -127,60 +142,101 @@ crow::response data(const crow::request& req) {
     }
 
     if (data.has("signals")) {
-        auto& signals = data["signals"];
-        if (signals.t() != crow::json::type::List) {
-            auto msg = crow::json::wvalue({{"error", "signals must be a list of strings"}});
+        auto signals = data["signals"];
+        std::cout<<"type "<<jsonTypeToString(signals.t())<<std::endl;
+        if (!((signals.t() == crow::json::type::List) ||(signals.t() == crow::json::type::Object))) {
+            auto msg = crow::json::wvalue({{"error", "signals must be a list of either strings or objects containing name, shape and offset"}});
             return { crow::status::BAD_REQUEST, msg };
         }
-        for (auto& signal : signals) {
-            if (signal.t() != crow::json::type::String) {
-                auto msg = crow::json::wvalue({{"error", "signals must be a list of strings"}});
+        // if (signal.t() != crow::json::type::Object || !signal.has("name") || !signal.has("shape") || !signal.has("offset")) {
+        //         auto msg = crow::json::wvalue({{"error", "signals must be a list of objects containing name, shape and offset"}});
+        //         return { crow::status::BAD_REQUEST, msg };
+        // }
+        std::cout<<"iterating over signals"<<std::endl;
+        for (auto signal : signals) {
+            std::cout<<"type "<<jsonTypeToString(signal.t())<<std::endl;
+
+            if (!((signal.t() == crow::json::type::String) ||(signal.t() == crow::json::type::Object))) {
+                auto msg = crow::json::wvalue({{"error", "signals must be a string of objects containing name, shape and offset"}});
                 return { crow::status::BAD_REQUEST, msg };
             }
-            signal_list.push_back(signal.s());
+            std::cout<<"line 161"<<std::endl;
+            Signal s;
+            std::cout<<"line 163"<<std::endl;
+            std::cout<<"type "<<jsonTypeToString(signal["name"].t())<<std::endl;
+
+            s.name = signal["name"].s();
+            std::cout<<"line 165"<<std::endl;
+            std::cout<<"Name"<<s.name<<" ";
+            for (auto& num: signal["shape"]){
+                s.shape.push_back(num.u());
+                std::cout<<"shape: ";
+                for(auto i:s.shape) std::cout<<i<<" ";
+                //std::ranges::copy(s.shape,std::ostream_iterator<hsize_t>(std::cout," "));
+            }
+            for (auto& num : signal["offset"]) {
+                s.offset.push_back(num.u());
+                std::cout<<"offset: ";
+                //std::ranges::copy(s.shape,std::ostream_iterator<hsize_t>(std::cout," "));
+                for(auto i:s.offset) std::cout<<i<<" ";
+
+            }
+            signal_list.push_back(s);
         }
     } else {
         auto msg = crow::json::wvalue({{"error", "signals not found in POST data"}});
         return { crow::status::BAD_REQUEST, msg };
     }
 
+    
     // 1. Find file
 
     try {
-        H5::H5File hdf5(uri_string, H5F_ACC_RDONLY);
+       // H5::H5File hdf5("/home/sr2003/rds/rds-hpc-support-5mCMIDBOkPU/sr2003/UKAEA/Datafiles/" + uri_string, H5F_ACC_RDONLY);
+        H5::H5File hdf5("/home/stefanie/work/adios/adiosnetwork/data/" + uri_string, H5F_ACC_RDONLY);
+        //H5::H5File hdf5("/home/stefanie/work/adios/adiosnetwork/tests/test_data/" + uri_string, H5F_ACC_RDONLY);
         CROW_LOG_DEBUG << "file"<< hdf5.getFileName();
         std::vector<ReturnData> return_data;
 
         for (auto& signal : signal_list) {
             // auto data_signal = signal + "/data";
             // auto time_signal = signal + "/time";
+            //get name
+            // auto name = std::get<0>(signal);
+            // std::vector<hsize_t> shape = std::get<1>(signal_tupel);
+            // std::vector<hsize_t> offset= std::get<2>(signal_tupel);
 
-
-            CROW_LOG_DEBUG << "signal = " << signal;
+            CROW_LOG_DEBUG << "signal = " << signal.name;
             try {
-                auto data_dset = hdf5.openDataSet(signal);
+                auto data_dset = hdf5.openDataSet(signal.name);
                 auto data_class = data_dset.getTypeClass();
                 auto data_dspace = data_dset.getSpace();
                 CROW_LOG_DEBUG << "data_class = " << data_class;
 
-                hsize_t data_rank = data_dspace.getSimpleExtentNdims();
-                CROW_LOG_DEBUG << "data_rank = " << data_rank;
-
+                //hsize_t data_rank = data_dspace.getSimpleExtentNdims();
+                CROW_LOG_DEBUG << "offset = " << signal.offset;
+                data_dspace.selectHyperslab(H5S_SELECT_SET, signal.shape.data(), signal.offset.data());
+                // Create a DataSpace for the memory that will hold the read data
+                H5::DataSpace mem_space(signal.shape.size(), signal.shape.data());
                 // if (data_rank != 1) {
                 //     return { crow::status::BAD_REQUEST, "invalid data rank" };
                 // }
 
-                std::vector<hsize_t> data_dims;
-                data_dims.resize(data_rank);
-                data_dspace.getSimpleExtentDims(data_dims.data(), nullptr);
-                CROW_LOG_DEBUG << "data_dims = " << data_dims;
+                //std::vector<hsize_t> data_dims;
+                //data_dims.resize(data_rank);
+                //data_dspace.getSimpleExtentDims(data_dims.data(), nullptr);
+                CROW_LOG_DEBUG << "shape = " << signal.shape;
 
        
                 // hsize_t len = data_dims[0];
                 // std::vector<hsize_t> dims;
                 // dims.resize(data_rank);
                 // std::vector<hsize_t> dims = { 2, len };
-                auto sz = std::accumulate(data_dims.begin(), data_dims.end(), 1, std::multiplies<>());
+                // Read the data
+                std::vector<double> result;
+                result.resize(std::accumulate(signal.shape.begin(), signal.shape.end(), 1, std::multiplies<hsize_t>()));
+                data_dset.read(result.data(), H5::PredType::NATIVE_DOUBLE, mem_space, data_dspace);
+                //(data_dims.begin(), data_dims.end(), 1, std::multiplies<>());
 
                 if (data_class == H5T_FLOAT) {
                     auto flt_type = data_dset.getFloatType();
@@ -206,18 +262,18 @@ crow::response data(const crow::request& req) {
                 //         return_data.emplace_back(ReturnData{signal, result, dims, typeid(double).name()});
                 //     }
                     
-                    //begin bug hack
-                    std::vector<double> result;
-                    result.resize(sz);
-                    data_dset.read(result.data(), H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
-                    //time_dset.read(&result[len], H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
-                    CROW_LOG_DEBUG << signal<< "data = " << result;
+                    // //begin bug hack
+                    // std::vector<double> result;
+                    // result.resize(sz);
+                    // data_dset.read(result.data(), H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
+                    // //time_dset.read(&result[len], H5::PredType::NATIVE_DOUBLE, H5S_ALL, H5S_ALL);
+                    CROW_LOG_DEBUG << signal.name<< "data = " << result<<" size "<<result.size();
 
-                    return_data.emplace_back(ReturnData{signal, result, data_dims, typeid(double).name()});
+                    return_data.emplace_back(ReturnData{signal.name, result, signal.shape, typeid(double).name()});
                     //end bug hack
                 }
             } catch (H5::FileIException& ex) {
-                auto msg = crow::json::wvalue({{"error", "signal '" + signal + "' not found"}});
+                auto msg = crow::json::wvalue({{"error", "signal '" + signal.name + "' not found"}});
                 return { crow::status::NOT_FOUND, msg };
             }
         }

@@ -200,7 +200,11 @@ class WandsWAN:
         if isinstance(request, str):
             return self.receive_one_signal(engine_name, request)
         if isinstance(request, list):
-            return self.receive_dict_arrays(engine_name, request)
+            if all(isinstance(item,str) for item in request):
+                #do all things for list
+                return self.receive_dict_arrays(engine_name, request)
+            elif all(isinstance(item,dict)for item in request):
+                return self.receive_dict_arrays_subset(engine_name,request)        
         else:
             raise TypeError("only single strings or a list of strings can be requested")
 
@@ -245,6 +249,64 @@ class WandsWAN:
                         # print(f"data before Get: \n{data!s}")
                         reader.Get(recvar, data, adios2.Mode.Deferred)
                         data_dict[name] = data
+                        # print(f"data right after get This might be not right as data might not have been sent yet \n: {data!s}")
+                        # currentStep = reader.CurrentStep()
+                    else:
+                        raise ValueError(f"InquireVariable failed {name!s}")
+            elif stepStatus == adios2.StepStatus.EndOfStream:
+                break
+            else:
+                raise StopIteration(f"next step failed to initiate {stepStatus!s}")
+            reader.EndStep()
+            # print(f"After end step \n{data!s}")
+        reader.Close()
+        # print(f"after close \n {data!s}")
+        return data_dict
+    
+    def receive_dict_arrays_subset(self, eng_name: str, request_dict: dict) -> dict:
+        """
+        Receive Data
+
+        Parameters
+        ----------
+        io_name
+            unique String to name the Reading Engine
+
+        var_list
+            list of names that need to be received
+
+
+        Returns
+        -------
+        data
+        """
+        print(f"STATUS: receiving data from remote")
+        data_dict = {}
+        reader = self._adob.get_IO().Open(eng_name, adios2.Mode.Read)
+        print(f"Status: Handshake successful")
+        while True:
+            stepStatus = reader.BeginStep()
+            # print(f"Stepstatus {stepStatus!s}")
+            if stepStatus == adios2.StepStatus.OK:
+                # inquire for variable
+                print(request_dict)
+                for signal in request_dict:
+                    # print(f"getting {name}")
+                    print(signal)
+                    print("inquire for",signal["name"])
+                    recvar = self._adob.get_IO().InquireVariable(signal["name"])
+                    # print(f"Variable inqurired {recvar!s}")
+                    if recvar:
+                        # determine the shape of the data that will be sent
+                        bufshape = recvar.Shape()
+                        # allocate buffer for now numpy
+                        # replace("_t","") necessary because
+                        # print(f"Datatype {recvar.Type()}")
+                        data = np.ones(bufshape, dtype=recvar.Type().replace("_t", ""))
+                        # print(f" in receive data {data!s}")
+                        # print(f"data before Get: \n{data!s}")
+                        reader.Get(recvar, data, adios2.Mode.Deferred)
+                        data_dict[signal["name"]] = data
                         # print(f"data right after get This might be not right as data might not have been sent yet \n: {data!s}")
                         # currentStep = reader.CurrentStep()
                     else:
