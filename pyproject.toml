@@ -27,6 +27,7 @@ dependencies = [
     "pytest-cov",
     "pylint",
     "h5py",
+    "requests",
 ]
 
 [tool.pytest.ini_options]
